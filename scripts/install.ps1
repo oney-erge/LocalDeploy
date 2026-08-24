@@ -1,6 +1,6 @@
 # LocalDeploy one-liner web installer for Windows.
 #
-#   irm https://raw.githubusercontent.com/iodriller/LocalDeploy/main/scripts/install.ps1 | iex
+#   irm https://raw.githubusercontent.com/oney-erge/LocalDeploy/main/scripts/install.ps1 | iex
 #
 # Needs nothing preinstalled: uses git when available, otherwise downloads the
 # repo as a ZIP. Then hands off to scripts\start.ps1, which walks through
@@ -8,7 +8,7 @@
 $ErrorActionPreference = "Stop"
 
 $dest = if ($env:LOCALDEPLOY_DIR) { $env:LOCALDEPLOY_DIR } else { Join-Path $HOME "LocalDeploy" }
-$repo = "https://github.com/iodriller/LocalDeploy"
+$repo = "https://github.com/oney-erge/LocalDeploy"
 
 Write-Host "==> Installing LocalDeploy to $dest" -ForegroundColor Cyan
 

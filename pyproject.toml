@@ -10,7 +10,7 @@ readme = "README.md"
 license = "MIT"
 license-files = ["LICENSE"]
 requires-python = ">=3.10"
-authors = [{ name = "iodriller" }]
+authors = [{ name = "oney-erge" }]
 keywords = ["ollama", "llm", "local-ai", "benchmark", "vram", "self-hosted"]
 classifiers = [
   "Development Status :: 4 - Beta",
@@ -47,10 +47,10 @@ packaging = [
 localdeploy = "localdeploy.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/iodriller/LocalDeploy"
-Documentation = "https://github.com/iodriller/LocalDeploy#readme"
-Changelog = "https://github.com/iodriller/LocalDeploy/blob/main/CHANGELOG.md"
-Issues = "https://github.com/iodriller/LocalDeploy/issues"
+Homepage = "https://github.com/oney-erge/LocalDeploy"
+Documentation = "https://github.com/oney-erge/LocalDeploy#readme"
+Changelog = "https://github.com/oney-erge/LocalDeploy/blob/main/CHANGELOG.md"
+Issues = "https://github.com/oney-erge/LocalDeploy/issues"
 
 [tool.setuptools]
 # The four root modules ship alongside the package: api_server is the ASGI app

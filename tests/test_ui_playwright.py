@@ -665,7 +665,7 @@ def test_update_chip_shows_when_update_available(live_server, browser):
             json={
                 "success": True, "checked": True, "current_version": "0.5.1", "latest_version": "9.9.9",
                 "update_available": True, "version_comparable": True, "channel": "stable", "prerelease": False,
-                "url": "https://github.com/iodriller/LocalDeploy/releases/tag/v9.9.9",
+                "url": "https://github.com/oney-erge/LocalDeploy/releases/tag/v9.9.9",
                 "published_at": "2026-01-01T00:00:00Z", "notes": "Big release.",
             }
         ),

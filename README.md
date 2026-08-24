@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/iodriller/LocalDeploy/actions/workflows/ci.yml"><img src="https://github.com/iodriller/LocalDeploy/actions/workflows/ci.yml/badge.svg" alt="CI status" /></a>
+  <a href="https://github.com/oney-erge/LocalDeploy/actions/workflows/ci.yml"><img src="https://github.com/oney-erge/LocalDeploy/actions/workflows/ci.yml/badge.svg" alt="CI status" /></a>
   <a href="https://pypi.org/project/localdeploy/"><img src="https://img.shields.io/pypi/v/localdeploy.svg" alt="PyPI version" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="MIT license" /></a>
   <img src="https://img.shields.io/badge/python-3.10%2B-blue.svg" alt="Python 3.10+" />
@@ -55,14 +55,14 @@ The installer can offer to install Python and Ollama through winget, clone the r
 
 ```powershell
 $installer = Join-Path $env:TEMP "localdeploy-install.ps1"
-Invoke-RestMethod https://raw.githubusercontent.com/iodriller/LocalDeploy/main/scripts/install.ps1 -OutFile $installer
+Invoke-RestMethod https://raw.githubusercontent.com/oney-erge/LocalDeploy/main/scripts/install.ps1 -OutFile $installer
 & $installer
 ```
 
 From an existing clone:
 
 ```powershell
-git clone https://github.com/iodriller/LocalDeploy.git
+git clone https://github.com/oney-erge/LocalDeploy.git
 cd LocalDeploy
 .\scripts\start.ps1
 ```
@@ -72,7 +72,7 @@ The script creates `.env`, `config.json`, and `.venv`, starts Ollama when it is 
 ### macOS and Linux
 
 ```bash
-git clone https://github.com/iodriller/LocalDeploy.git
+git clone https://github.com/oney-erge/LocalDeploy.git
 cd LocalDeploy
 ./scripts/start.sh
 ```
@@ -92,13 +92,13 @@ docker run -d --name localdeploy \
   -p 127.0.0.1:8000:8000 \
   -v localdeploy-data:/data/localdeploy \
   -v ollama-data:/root/.ollama \
-  ghcr.io/iodriller/localdeploy:0.6.0
+  ghcr.io/oney-erge/localdeploy:0.6.0
 ```
 
 To build from source instead:
 
 ```bash
-git clone https://github.com/iodriller/LocalDeploy.git
+git clone https://github.com/oney-erge/LocalDeploy.git
 cd LocalDeploy
 docker compose up --build -d
 ```

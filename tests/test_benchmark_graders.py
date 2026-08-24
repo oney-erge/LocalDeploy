@@ -364,7 +364,7 @@ class TestHardStructuredGraders:
                 },
                 {
                     "id": 2,
-                    "objective": "Daily 9am report on github.com/iodriller/LocalDeploy commits from yesterday",
+                    "objective": "Daily 9am report on github.com/oney-erge/LocalDeploy commits from yesterday",
                     "route": "schedule.manage",
                     "trigger": {"kind": "schedule", "details": "Daily at 9am"},
                     "delivery": "latest",

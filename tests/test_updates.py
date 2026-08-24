@@ -56,7 +56,7 @@ def test_update_check_reports_update_available(monkeypatch):
         updates_mod,
         "_fetch_latest",
         lambda channel: (
-            {"tag_name": "v99.0.0", "html_url": "https://github.com/iodriller/LocalDeploy/releases/tag/v99.0.0",
+            {"tag_name": "v99.0.0", "html_url": "https://github.com/oney-erge/LocalDeploy/releases/tag/v99.0.0",
              "published_at": "2026-01-01T00:00:00Z", "body": "Big release.", "prerelease": False},
             None,
         ),

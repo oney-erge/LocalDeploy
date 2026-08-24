@@ -1020,7 +1020,7 @@ TEST_CASES: List[TestCase] = [
         prompt=(
             "Extract a task list from this user message:\n"
             "\"Hey can you do these: Watch my Downloads folder for new PDFs and send a summary of each one to me. "
-            "Also schedule a daily 9am report on yesterday's commits in my github.com/iodriller/LocalDeploy repo. "
+            "Also schedule a daily 9am report on yesterday's commits in my github.com/oney-erge/LocalDeploy repo. "
             "Don't bother me about Codex or anything advanced.\"\n\n"
             "Schema:\n"
             "{\n"

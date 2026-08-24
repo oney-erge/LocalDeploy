@@ -2,7 +2,7 @@
 
 All notable changes to this project should be documented here.
 
-## Unreleased
+## 0.6.1 - 2026-08-24
 
 - Published the Python package to PyPI and added a GHCR container publishing workflow with a
   post-publish health check, build provenance, and an SBOM.
@@ -13,6 +13,8 @@ All notable changes to this project should be documented here.
   guidance file.
 - Ran the macOS packaging workflow successfully on a GitHub-hosted Apple Silicon runner, including
   building the app, launching it, checking `/health`, and creating the DMG.
+- Renamed the GitHub account from iodriller to oney-erge; updated repository URLs, package and
+  installer authorship, and the Windows registry key path to match.
 
 ## 0.6.0 - 2026-07-19
 

@@ -88,6 +88,6 @@ app = BUNDLE(
         # Menu-bar-only utility: no Dock icon, no app-switcher entry -
         # matches the Windows build's tray-only, no-taskbar-button behavior.
         "LSUIElement": True,
-        "NSHumanReadableCopyright": "MIT License - iodriller",
+        "NSHumanReadableCopyright": "MIT License - oney-erge",
     },
 )

@@ -23,7 +23,7 @@ from ..utils import offline_mode
 
 router = APIRouter()
 
-_REPO = "iodriller/LocalDeploy"
+_REPO = "oney-erge/LocalDeploy"
 _RELEASES_API = f"https://api.github.com/repos/{_REPO}/releases"
 _REQUEST_TIMEOUT = 6
 

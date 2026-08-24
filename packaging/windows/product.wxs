@@ -21,21 +21,21 @@
            Name="LocalDeploy"
            Language="1033"
            Version="$(var.ProductVersion)"
-           Manufacturer="iodriller"
+           Manufacturer="oney-erge"
            UpgradeCode="BCBBE1A9-FE8E-4639-B8EA-3027BFEFE519">
 
     <Package InstallerVersion="500"
              Compressed="yes"
              InstallScope="perUser"
              Description="LocalDeploy $(var.ProductVersion) Setup"
-             Manufacturer="iodriller" />
+             Manufacturer="oney-erge" />
 
     <MajorUpgrade DowngradeErrorMessage="A newer version of LocalDeploy is already installed. Uninstall it first if you want to downgrade." />
     <MediaTemplate EmbedCab="yes" />
 
     <Icon Id="LocalDeployIcon.exe" SourceFile="localdeploy.ico" />
     <Property Id="ARPPRODUCTICON" Value="LocalDeployIcon.exe" />
-    <Property Id="ARPURLINFOABOUT" Value="https://github.com/iodriller/LocalDeploy" />
+    <Property Id="ARPURLINFOABOUT" Value="https://github.com/oney-erge/LocalDeploy" />
     <Property Id="ARPNOREPAIR" Value="1" />
 
     <!-- Close a running tray app before install/upgrade/uninstall so its exe
@@ -57,11 +57,11 @@
         <RegistryKey Root="HKCU" Key="Software\Microsoft\Windows\CurrentVersion\Uninstall\[ProductCode]">
           <RegistryValue Type="string" Name="DisplayName" Value="LocalDeploy" KeyPath="yes" />
           <RegistryValue Type="string" Name="DisplayVersion" Value="$(var.ProductVersion)" />
-          <RegistryValue Type="string" Name="Publisher" Value="iodriller" />
+          <RegistryValue Type="string" Name="Publisher" Value="oney-erge" />
           <RegistryValue Type="string" Name="DisplayIcon" Value="[INSTALLFOLDER]LocalDeploy.exe" />
           <RegistryValue Type="string" Name="InstallLocation" Value="[INSTALLFOLDER]" />
           <RegistryValue Type="string" Name="UninstallString" Value="[SystemFolder]msiexec.exe /x [ProductCode]" />
-          <RegistryValue Type="string" Name="URLInfoAbout" Value="https://github.com/iodriller/LocalDeploy" />
+          <RegistryValue Type="string" Name="URLInfoAbout" Value="https://github.com/oney-erge/LocalDeploy" />
           <RegistryValue Type="integer" Name="NoModify" Value="1" />
           <RegistryValue Type="integer" Name="NoRepair" Value="1" />
           <RegistryValue Type="integer" Name="EstimatedSize" Value="65000" />

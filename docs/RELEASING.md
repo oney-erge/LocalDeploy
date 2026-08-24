@@ -33,5 +33,5 @@ python -m venv release-check
 Use the released version in place of `0.6.0`. Verify the container separately:
 
 ```bash
-docker pull ghcr.io/iodriller/localdeploy:0.6.0
+docker pull ghcr.io/oney-erge/localdeploy:0.6.0
 ```

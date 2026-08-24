@@ -290,7 +290,7 @@ def search_ollama_library(req: LibrarySearchRequest) -> Dict[str, Any]:
         resp = requests.get(
             "https://ollama.com/search",
             params={"q": req.query.strip()},
-            headers={"User-Agent": "LocalDeploy (+https://github.com/iodriller/LocalDeploy)"},
+            headers={"User-Agent": "LocalDeploy (+https://github.com/oney-erge/LocalDeploy)"},
             timeout=15,
         )
         resp.raise_for_status()
@@ -363,7 +363,7 @@ def library_tags(req: LibraryTagsRequest) -> Dict[str, Any]:
     try:
         resp = requests.get(
             f"https://ollama.com/library/{family}/tags",
-            headers={"User-Agent": "LocalDeploy (+https://github.com/iodriller/LocalDeploy)"},
+            headers={"User-Agent": "LocalDeploy (+https://github.com/oney-erge/LocalDeploy)"},
             timeout=15,
         )
         resp.raise_for_status()
@@ -402,7 +402,7 @@ def _library_rows(query: str, limit: int) -> Tuple[List[Dict[str, Any]], Optiona
         resp = requests.get(
             "https://ollama.com/search",
             params={"q": query},
-            headers={"User-Agent": "LocalDeploy (+https://github.com/iodriller/LocalDeploy)"},
+            headers={"User-Agent": "LocalDeploy (+https://github.com/oney-erge/LocalDeploy)"},
             timeout=15,
         )
         resp.raise_for_status()
@@ -518,7 +518,7 @@ def _modelscope_list_gguf_files(repo_id: str) -> Tuple[List[Dict[str, Any]], Opt
         resp = requests.get(
             _MODELSCOPE_FILES_URL.format(repo_id=repo_id),
             params={"Revision": "master", "Recursive": "True"},
-            headers={"User-Agent": "LocalDeploy (+https://github.com/iodriller/LocalDeploy)"},
+            headers={"User-Agent": "LocalDeploy (+https://github.com/oney-erge/LocalDeploy)"},
             timeout=10,
         )
     except requests.RequestException as exc:
@@ -625,7 +625,7 @@ def _modelscope_rows(query: str, limit: int) -> Tuple[List[Dict[str, Any]], Opti
         resp = requests.get(
             _MODELSCOPE_SEARCH_URL,
             params={"search": search_text, "sort": "downloads", "page_number": 1, "page_size": max(1, limit)},
-            headers={"User-Agent": "LocalDeploy (+https://github.com/iodriller/LocalDeploy)"},
+            headers={"User-Agent": "LocalDeploy (+https://github.com/oney-erge/LocalDeploy)"},
             timeout=15,
         )
         resp.raise_for_status()
