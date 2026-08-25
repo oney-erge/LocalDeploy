@@ -13,6 +13,21 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  launchers:
+    name: Launcher contract
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+      - name: Check POSIX and PowerShell syntax
+        shell: pwsh
+        run: |
+          bash -n run.sh run.command
+          shellcheck --severity=error run.sh run.command
+          $errors = $null
+          [void][System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path run.ps1), [ref]$null, [ref]$errors)
+          if ($errors.Count) { $errors | Format-List | Out-String | Write-Error }
+
   smoke-windows:
     name: Smoke checks (Windows)
     runs-on: windows-latest

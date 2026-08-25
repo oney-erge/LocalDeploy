@@ -30,4 +30,7 @@ case "$action" in
     exit 0 ;;
   repair) rm -f .venv/requirements.sha256 ;;
 esac
+if [ "$no_browser" -eq 1 ]; then
+  export NO_BROWSER=1
+fi
 exec ./scripts/start.sh

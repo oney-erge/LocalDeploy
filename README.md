@@ -40,6 +40,11 @@ If you already know which Ollama model you want and only need a terminal chat, O
 
 ## Install
 
+The stable project entry points are `run.bat` on Windows, `run.command` on
+macOS, and `run.sh` on Linux. Re-running them is safe. They use the existing
+environment when it is current and repair missing dependencies when needed.
+Each also accepts `doctor`, `repair`, `docker`, `logs`, and `stop`.
+
 Install from PyPI when Python and Ollama are already available:
 
 ```bash
