@@ -1,6 +1,6 @@
 # Screenshots
 
-These images come from the real UI. The capture script seeds a few synthetic benchmark runs so comparison views are populated; it does not replace the interface with a mockup.
+These images come from the real UI. The capture scripts seed deterministic local data so recommendations, chat, comparison, and monitoring views are populated without exposing private prompts or machine details. They do not replace the interface with a mockup.
 
 ## Setup and Deploy
 
@@ -22,7 +22,7 @@ These images come from the real UI. The capture script seeds a few synthetic ben
 
 ## Demo
 
-The README uses [docs/assets/demo.gif](assets/demo.gif), captured by the same tooling.
+The README uses [docs/assets/demo.gif](assets/demo.gif), captured by the same tooling. It tours recommendations, deployment, chat, benchmark comparisons, and monitoring, then returns to the opening view. The GIF is encoded with an infinite loop.
 
 ## Regenerate the files
 

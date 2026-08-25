@@ -21,7 +21,7 @@ I built LocalDeploy because I needed a dependable way to choose and run local mo
 LocalDeploy sits on top of [Ollama](https://ollama.com) and can also work with llama.cpp and loopback OpenAI-compatible runtimes. It detects the machine, estimates whether a model will fit, manages local models, and records benchmark results. LocalDeploy itself does not provide cloud inference.
 
 <p align="center">
-  <img src="docs/assets/demo.gif" alt="LocalDeploy hardware detection, model selection, chat, and benchmark views" width="820" />
+  <img src="docs/assets/demo.gif" alt="LocalDeploy walkthrough showing hardware-aware model recommendations, deployment, local chat, benchmark comparisons, and live monitoring" width="820" />
 </p>
 
 ## What it does
