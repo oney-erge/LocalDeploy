@@ -5,8 +5,10 @@ Use these commands to chat or compare models without the browser.
 Start the server first if it is not already running:
 
 ```powershell
-.\scripts\start.ps1 -NoBrowser
+.\run.ps1 -NoBrowser
 ```
+
+On macOS or Linux, use `./run.sh --no-browser`.
 
 ## Chat helper
 

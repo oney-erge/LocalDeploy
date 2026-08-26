@@ -1,6 +1,6 @@
 # Examples
 
-Small clients for the LocalDeploy API. They expect the server at `http://127.0.0.1:8000`. Start it with `.\scripts\start.ps1` on Windows or `./scripts/start.sh` on macOS and Linux.
+Small clients for the LocalDeploy API. They expect the server at `http://127.0.0.1:8000`. Start it with `.\run.bat` on Windows, `./run.command` on macOS, or `./run.sh` on Linux.
 
 | File | What it shows |
 |---|---|

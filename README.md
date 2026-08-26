@@ -45,6 +45,21 @@ macOS, and `run.sh` on Linux. Re-running them is safe. They use the existing
 environment when it is current and repair missing dependencies when needed.
 Each also accepts `doctor`, `repair`, `docker`, `logs`, and `stop`.
 
+From a clone:
+
+```powershell
+.\run.bat          # Windows
+```
+
+```bash
+./run.command      # macOS
+./run.sh           # Linux
+```
+
+Use `.\run.ps1` from PowerShell. Add an action after any launcher, such as
+`.\run.ps1 doctor` or `./run.sh docker`. The default `run` action waits for
+LocalDeploy to become ready before opening the UI.
+
 Install from PyPI when Python and Ollama are already available:
 
 ```bash
@@ -64,27 +79,28 @@ Invoke-RestMethod https://raw.githubusercontent.com/oney-erge/LocalDeploy/main/s
 & $installer
 ```
 
-From an existing clone:
+From an existing clone, use the stable root launcher:
 
 ```powershell
 git clone https://github.com/oney-erge/LocalDeploy.git
 cd LocalDeploy
-.\scripts\start.ps1
+.\run.bat
 ```
 
-The script creates `.env`, `config.json`, and `.venv`, starts Ollama when it is installed, and opens `http://localhost:8000/ui`. Stop it with `.\scripts\stop.ps1`. You can also double-click `start.bat` from a clone or ZIP download.
+The launcher creates `.env`, `config.json`, and `.venv`, starts Ollama when it is installed, and opens `http://localhost:8000/ui`. Stop it with `.\run.ps1 stop`. The lower-level `scripts\start.ps1` remains available for development-specific flags.
 
 ### macOS and Linux
 
 ```bash
 git clone https://github.com/oney-erge/LocalDeploy.git
 cd LocalDeploy
-./scripts/start.sh
+./run.command  # macOS
+./run.sh       # Linux
 ```
 
 If Python 3 or Ollama is missing, the launcher offers to install it for you (Homebrew on macOS; apt, dnf, pacman, or zypper for Python and the [official installer](https://ollama.com/download) for Ollama on Linux) and asks before running anything. Answer no, or run non-interactively, and it prints the exact manual command instead.
 
-On macOS you can also double-click `start.command` from a clone (it opens Terminal and runs the launcher). A ZIP download strips the executable bit, so after unzipping run `chmod +x start.command scripts/*.sh` once, or just use `git clone` as above.
+On macOS you can double-click `run.command` from a clone. A ZIP download can strip the executable bit, so after unzipping run `chmod +x run.command run.sh scripts/*.sh` once, or use `git clone` as above.
 
 The launcher starts Ollama when it is installed but not already reachable, then keeps the LocalDeploy server in the foreground. Press Ctrl+C to stop LocalDeploy. Run `./scripts/stop.sh --ollama` if you also want to stop an Ollama process started by the launcher. Set `START_OLLAMA=false` in `.env` when another service manages Ollama.
 

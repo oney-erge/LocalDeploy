@@ -24,9 +24,10 @@ pytest -q
 python scripts\egress_selftest.py
 ```
 
-The cross-platform launchers are `scripts/start.ps1`, `scripts/start.sh`,
-`start.bat`, and `start.command`. The frontend is native HTML/CSS/ES modules and
-has no npm build step.
+The stable cross-platform launchers are `run.bat` and `run.ps1` on Windows,
+`run.command` on macOS, and `run.sh` on Linux. Keep `scripts/start.ps1` and
+`scripts/start.sh` as the lower-level lifecycle implementation. The frontend is
+native HTML/CSS/ES modules and has no npm build step.
 
 Packaging and release workflows are documented in `docs/PACKAGING.md`; do not
 build installers, publish packages/images, or create releases unless explicitly

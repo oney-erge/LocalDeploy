@@ -44,7 +44,7 @@ Pull the models you want to compare and make sure their profiles are enabled in 
 
 ```powershell
 $env:API_PORT = "8011"
-.\scripts\start.ps1
+.\run.ps1
 python benchmark.py --timeout 300
 ```
 

@@ -9,16 +9,17 @@ Set `ENABLE_WEB_UI=false` if you only want the API.
 On Windows:
 
 ```powershell
-.\scripts\start.ps1
+.\run.bat
 ```
 
-On macOS or Linux:
+On macOS and Linux:
 
 ```bash
-./scripts/start.sh
+./run.command  # macOS
+./run.sh       # Linux
 ```
 
-For API-only startup on Windows, use `.\scripts\start.ps1 -NoBrowser`. For foreground logs, use `.\scripts\start.ps1 -Foreground`.
+For API-only startup, use `.\run.ps1 -NoBrowser` on Windows or `./run.sh --no-browser` on macOS and Linux. The lower-level `.\scripts\start.ps1 -Foreground` command exposes development-specific foreground logging.
 
 The launchers read `API_HOST` and `API_PORT` from `.env`. When the server binds to `0.0.0.0`, the local browser link still uses `127.0.0.1`. On macOS and Linux, `start.sh` starts an installed Ollama server when needed. Use `START_OLLAMA=false` when Ollama is managed elsewhere, and `./scripts/stop.sh --ollama` to stop a server started by the launcher.
 
