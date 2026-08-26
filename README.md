@@ -45,6 +45,11 @@ macOS, and `run.sh` on Linux. Re-running them is safe. They use the existing
 environment when it is current and repair missing dependencies when needed.
 Each also accepts `doctor`, `repair`, `docker`, `logs`, and `stop`.
 
+Setup checks disk space, prevents concurrent environment changes, retries
+temporary network failures up to three times, and writes persistent failures
+to `.setup/install.log`. The `logs` action follows the active native or
+Docker logs rather than requiring Docker.
+
 From a clone:
 
 ```powershell

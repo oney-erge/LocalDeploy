@@ -14,6 +14,11 @@ param(
 $ErrorActionPreference = "Stop"
 $ProjectRoot = Split-Path -Parent $PSScriptRoot
 Set-Location $ProjectRoot
+. "$PSScriptRoot\install-utils.ps1"
+Initialize-Install -RepositoryRoot $ProjectRoot -ProductName "LocalDeploy"
+trap { Write-InstallFailure $_; Exit-InstallLock; exit 1 }
+Enter-InstallLock
+Assert-InstallFreeSpace -Path $ProjectRoot -RequiredGB 3
 
 function Write-Step {
     param([string]$Message)
@@ -117,9 +122,11 @@ function Install-PythonGuide {
             Write-Step "Installing Python 3.12 via winget..."
             # Pipe to Out-Host so winget output goes to the console only and does
             # not get captured as part of this function's return value.
-            winget install -e --id Python.Python.3.12 --accept-source-agreements --accept-package-agreements | Out-Host
-            if ($LASTEXITCODE -ne 0) {
-                Write-Warning "winget exited with code $LASTEXITCODE. Python may not have installed correctly."
+            Invoke-InstallRetry "Python installation" {
+                $output = winget install -e --id Python.Python.3.12 --accept-source-agreements --accept-package-agreements 2>&1
+                $code = $LASTEXITCODE
+                $output | Out-Host
+                if ($code -ne 0) { throw "winget Python install failed with exit $($code): $($output -join [Environment]::NewLine)" }
             }
             # Refresh PATH so the new Python binary is visible in this session
             $env:PATH = [System.Environment]::GetEnvironmentVariable("PATH", "Machine") + ";" +
@@ -175,9 +182,11 @@ function Install-OllamaGuide {
     switch ($choice.Trim().ToUpper()) {
         "1" {
             Write-Step "Installing Ollama via winget..."
-            winget install -e --id Ollama.Ollama --accept-source-agreements --accept-package-agreements | Out-Host
-            if ($LASTEXITCODE -ne 0) {
-                Write-Warning "winget exited with code $LASTEXITCODE. Ollama may not have installed correctly."
+            Invoke-InstallRetry "Ollama installation" {
+                $output = winget install -e --id Ollama.Ollama --accept-source-agreements --accept-package-agreements 2>&1
+                $code = $LASTEXITCODE
+                $output | Out-Host
+                if ($code -ne 0) { throw "winget Ollama install failed with exit $($code): $($output -join [Environment]::NewLine)" }
             }
             # Refresh PATH so the new ollama binary is visible in this session
             $env:PATH = [System.Environment]::GetEnvironmentVariable("PATH", "Machine") + ";" +
@@ -279,11 +288,17 @@ $docsUrl = "$apiBaseUrl/docs"
 function Install-Requirements {
     param([string]$PythonExe)
     Write-Step "Installing Python dependencies (this can take a minute on first run)"
-    & $PythonExe -m pip install --upgrade pip --quiet
-    & $PythonExe -m pip install --quiet -r requirements.txt
-    if ($LASTEXITCODE -ne 0) {
-        throw ("Dependency install failed. Check your internet connection (or proxy) and re-run this script. " +
-               "The exact pip error is printed above.")
+    Invoke-InstallRetry "pip upgrade" {
+        $output = & $PythonExe -m pip install --upgrade pip --quiet 2>&1
+        $code = $LASTEXITCODE
+        $output | Out-Host
+        if ($code -ne 0) { throw "pip upgrade failed with exit $($code): $($output -join [Environment]::NewLine)" }
+    }
+    Invoke-InstallRetry "dependency installation" {
+        $output = & $PythonExe -m pip install --quiet -r requirements.txt 2>&1
+        $code = $LASTEXITCODE
+        $output | Out-Host
+        if ($code -ne 0) { throw "pip install failed with exit $($code): $($output -join [Environment]::NewLine)" }
     }
     (Get-FileHash -LiteralPath ".\requirements.txt" -Algorithm SHA256).Hash |
         Set-Content -LiteralPath ".\.venv\requirements.sha256"
@@ -359,6 +374,7 @@ elseif (-not (Test-Http "http://localhost:11434/api/tags" -Timeout 5)) {
 if (-not $SkipLlamaCpp) {
     & "$PSScriptRoot\start_llamacpp.ps1" -Optional
 }
+Complete-Install
 
 function Stop-RunningApi {
     # Prefer the PID file the background launcher writes; fall back to whoever

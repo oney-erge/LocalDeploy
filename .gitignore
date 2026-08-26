@@ -1,4 +1,5 @@
 # Local environment and machine-specific config
+.setup/
 .env
 config.json
 calibration.json

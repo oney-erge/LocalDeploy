@@ -4,6 +4,11 @@
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
+source ./scripts/install-utils.sh
+install_init "$PWD" "LocalDeploy"
+install_enable_traps
+install_lock
+install_require_space "$PWD" 3
 
 # --- guided install helpers ---------------------------------------------------
 # Mirrors what start.ps1 offers via winget on Windows: ask once, use whatever
@@ -28,26 +33,27 @@ install_python_guided() {
     Darwin)
       if command -v brew >/dev/null 2>&1; then
         if confirm "Python 3 was not found. Install it now with 'brew install python'?"; then
-          if brew install python; then return 0; fi
+          if install_retry "Python Homebrew install" brew install python; then return 0; fi
         fi
       fi
       ;;
     Linux)
       if command -v apt-get >/dev/null 2>&1; then
         if confirm "Python 3 was not found. Install it now with 'sudo apt install python3 python3-venv python3-pip'?"; then
-          if sudo apt-get update -y && sudo apt-get install -y python3 python3-venv python3-pip; then return 0; fi
+          if install_retry "APT metadata refresh" sudo apt-get update -y &&
+             install_retry "Python APT install" sudo apt-get install -y python3 python3-venv python3-pip; then return 0; fi
         fi
       elif command -v dnf >/dev/null 2>&1; then
         if confirm "Python 3 was not found. Install it now with 'sudo dnf install python3 python3-pip'?"; then
-          if sudo dnf install -y python3 python3-pip; then return 0; fi
+          if install_retry "Python DNF install" sudo dnf install -y python3 python3-pip; then return 0; fi
         fi
       elif command -v pacman >/dev/null 2>&1; then
         if confirm "Python 3 was not found. Install it now with 'sudo pacman -S python'?"; then
-          if sudo pacman -Sy --noconfirm python; then return 0; fi
+          if install_retry "Python pacman install" sudo pacman -Sy --noconfirm python; then return 0; fi
         fi
       elif command -v zypper >/dev/null 2>&1; then
         if confirm "Python 3 was not found. Install it now with 'sudo zypper install python3 python3-pip'?"; then
-          if sudo zypper install -y python3 python3-pip; then return 0; fi
+          if install_retry "Python zypper install" sudo zypper install -y python3 python3-pip; then return 0; fi
         fi
       fi
       ;;
@@ -60,13 +66,20 @@ install_ollama_guided() {
     Darwin)
       if command -v brew >/dev/null 2>&1; then
         if confirm "Ollama was not found. Install it now with 'brew install ollama'?"; then
-          if brew install ollama; then return 0; fi
+          if install_retry "Ollama Homebrew install" brew install ollama; then return 0; fi
         fi
       fi
       ;;
     Linux)
       if confirm "Ollama was not found. Install it now using the official installer (curl -fsSL https://ollama.com/install.sh | sh)?"; then
-        if curl -fsSL https://ollama.com/install.sh | sh; then return 0; fi
+        local installer
+        installer="$(mktemp)"
+        if install_download "https://ollama.com/install.sh" "$installer" "Ollama installer" &&
+           sh "$installer"; then
+          rm -f -- "$installer"
+          return 0
+        fi
+        rm -f -- "$installer"
       fi
       ;;
   esac
@@ -107,8 +120,8 @@ fi
 REQ_HASH="$( (sha256sum requirements.txt 2>/dev/null || shasum -a 256 requirements.txt) | cut -d' ' -f1 )"
 if [ "$(cat .venv/requirements.sha256 2>/dev/null)" != "$REQ_HASH" ]; then
   echo "[start] installing dependencies (first run can take a minute) ..."
-  pip install --quiet --upgrade pip
-  pip install --quiet -r requirements.txt || {
+  install_retry "pip upgrade" pip install --quiet --upgrade pip
+  install_retry "dependency installation" pip install --quiet -r requirements.txt || {
     echo "ERROR: dependency install failed. Check your internet connection and re-run." >&2
     exit 1
   }
@@ -224,6 +237,7 @@ if ! ollama_ready; then
     fi
   fi
 fi
+install_complete
 
 BROWSE_HOST="$HOST"
 case "$BROWSE_HOST" in
