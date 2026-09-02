@@ -103,7 +103,7 @@ def _process_is_active(pid: int) -> bool:
 def _prepare_unix_launcher(tmp_path: Path):
     scripts_dir = tmp_path / "scripts"
     scripts_dir.mkdir()
-    for name in ("start.sh", "stop.sh"):
+    for name in ("start.sh", "stop.sh", "install-utils.sh"):
         shutil.copy2(PROJECT_ROOT / "scripts" / name, scripts_dir / name)
 
     requirements = tmp_path / "requirements.txt"
