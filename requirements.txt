@@ -1,7 +1,7 @@
 fastapi==0.136.1
 uvicorn==0.46.0
 requests==2.33.1
-python-dotenv==1.2.2
+python-dotenv==1.2.3
 pydantic==2.13.4
 python-multipart==0.0.31
 huggingface_hub==1.16.1
