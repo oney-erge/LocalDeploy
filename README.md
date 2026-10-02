@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="localdeploy/web/logo.svg" width="96" height="96" alt="LocalDeploy logo" />
+  <img src="https://raw.githubusercontent.com/oney-erge/LocalDeploy/main/localdeploy/web/logo.svg" width="96" height="96" alt="LocalDeploy logo" />
 </p>
 
 <h1 align="center">LocalDeploy</h1>
@@ -17,7 +17,7 @@
 </p>
 
 <p align="center">
-  <img src="docs/assets/demo.gif" alt="LocalDeploy walkthrough showing hardware-aware model recommendations, deployment, local chat, benchmark comparisons, and live monitoring" width="820" />
+  <img src="https://raw.githubusercontent.com/oney-erge/LocalDeploy/main/docs/assets/demo.gif" alt="LocalDeploy walkthrough showing hardware-aware model recommendations, deployment, local chat, benchmark comparisons, and live monitoring" width="820" />
 </p>
 
 LocalDeploy sits on top of [Ollama](https://ollama.com) and can also work with llama.cpp and loopback OpenAI-compatible runtimes. It detects your hardware, estimates whether a model will fit before you download it, manages local models, and records benchmark results. It serves an OpenAI-compatible API, so tools you already use can talk to the model you deployed. It has no telemetry and does not provide cloud inference.
@@ -163,11 +163,11 @@ A new install starts without profiles or models. Pulling the first model creates
 The hardware and memory estimates are guidance. Drivers, runtime versions, context length, desktop GPU use, and quantization all affect the actual result. LocalDeploy records observed memory after deployment so later estimates can be adjusted for that machine.
 
 <p align="center">
-  <img src="docs/screenshots/setup-deploy.png" alt="Setup and Deploy tab with hardware detection, live VRAM, and model fit information" width="800" />
+  <img src="https://raw.githubusercontent.com/oney-erge/LocalDeploy/main/docs/screenshots/setup-deploy.png" alt="Setup and Deploy tab with hardware detection, live VRAM, and model fit information" width="800" />
 </p>
 
 <p align="center">
-  <img src="docs/screenshots/chat-playground.png" alt="Chat playground with a streamed response from a local model" width="800" />
+  <img src="https://raw.githubusercontent.com/oney-erge/LocalDeploy/main/docs/screenshots/chat-playground.png" alt="Chat playground with a streamed response from a local model" width="800" />
 </p>
 
 More screenshots are in [docs/SCREENSHOTS.md](docs/SCREENSHOTS.md).
