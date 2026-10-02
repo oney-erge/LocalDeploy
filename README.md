@@ -5,7 +5,7 @@
 <h1 align="center">LocalDeploy</h1>
 
 <p align="center">
-  A local web UI and API for choosing, running, and comparing AI models on your own hardware.
+  <strong>Pick, deploy, and benchmark the best local AI model for your machine.</strong>
 </p>
 
 <p align="center">
@@ -16,13 +16,32 @@
   <img src="https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux%20%7C%20Docker-555.svg" alt="Platforms" />
 </p>
 
-I built LocalDeploy because I needed a dependable way to choose and run local models for other work I am involved in. It became useful enough that I decided to make it public. I hope it saves someone else some setup time and trial and error.
-
-LocalDeploy sits on top of [Ollama](https://ollama.com) and can also work with llama.cpp and loopback OpenAI-compatible runtimes. It detects the machine, estimates whether a model will fit, manages local models, and records benchmark results. LocalDeploy itself does not provide cloud inference.
-
 <p align="center">
   <img src="docs/assets/demo.gif" alt="LocalDeploy walkthrough showing hardware-aware model recommendations, deployment, local chat, benchmark comparisons, and live monitoring" width="820" />
 </p>
+
+LocalDeploy sits on top of [Ollama](https://ollama.com) and can also work with llama.cpp and loopback OpenAI-compatible runtimes. It detects your hardware, estimates whether a model will fit before you download it, manages local models, and records benchmark results. It serves an OpenAI-compatible API, so tools you already use can talk to the model you deployed. It has no telemetry and does not provide cloud inference.
+
+## Quick start
+
+With Python 3.10+ and Ollama already installed:
+
+```bash
+pip install localdeploy
+localdeploy        # starts the server and opens http://localhost:8000/ui
+```
+
+`uvx localdeploy` runs it without installing, if you use [uv](https://docs.astral.sh/uv/). Add `--no-browser` to keep the browser closed.
+
+Without them, use the launcher from a clone. It creates the environment, opens the UI, and on macOS and Linux offers to install a missing Python or Ollama first:
+
+```bash
+git clone https://github.com/oney-erge/LocalDeploy.git
+cd LocalDeploy
+./run.sh           # Linux. macOS: ./run.command   Windows: .\run.bat
+```
+
+Docker, the Windows installer, and the details are under [Install](#install).
 
 ## What it does
 
@@ -37,6 +56,10 @@ LocalDeploy sits on top of [Ollama](https://ollama.com) and can also work with l
 - Exports benchmark reports and deployment manifests for later use.
 
 If you already know which Ollama model you want and only need a terminal chat, Ollama may be all you need. LocalDeploy is meant for the less certain part: choosing a model for a particular machine and comparing it with real runs.
+
+## Why it exists
+
+I built LocalDeploy because I needed a dependable way to choose and run local models for other work I am involved in. It became useful enough that I decided to make it public. I hope it saves someone else some setup time and trial and error.
 
 ## Install
 
@@ -118,7 +141,7 @@ docker run -d --name localdeploy \
   -p 127.0.0.1:8000:8000 \
   -v localdeploy-data:/data/localdeploy \
   -v ollama-data:/root/.ollama \
-  ghcr.io/oney-erge/localdeploy:0.6.0
+  ghcr.io/oney-erge/localdeploy:latest
 ```
 
 To build from source instead:
