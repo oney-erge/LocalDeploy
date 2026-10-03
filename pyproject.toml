@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "localdeploy"
 dynamic = ["version", "dependencies"]
-description = "A local web UI and OpenAI-compatible API for choosing, running, and benchmarking models with Ollama and other local runtimes."
+description = "Find, deploy, manage, and benchmark local AI models for your hardware across Ollama, llama.cpp, and compatible runtimes."
 readme = "README.md"
 license = "MIT"
 license-files = ["LICENSE"]
