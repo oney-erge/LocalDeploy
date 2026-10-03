@@ -18,7 +18,7 @@ export function renderWinners(runs) {
   const bestTps = [...runs].filter((run) => run.summary.avg_tokens_per_second != null).sort((a, b) => b.summary.avg_tokens_per_second - a.summary.avg_tokens_per_second)[0];
   const categories = new Set(runs.flatMap((run) => (run.category_summary || categorySummary(run.tests)).map((row) => row.category)));
   return [
-    `<div class="metric-tile"><span>Top run</span><strong>${esc(runLabel(top))}</strong><small>${esc(top.summary.passed)}/${esc(top.summary.tests)} passed</small></div>`,
+    `<div class="metric-tile"><span>Top run</span><strong>${esc(runLabel(top))}</strong><small>${esc(top.summary.passed)}/${esc(top.summary.tests)} completed</small></div>`,
     `<div class="metric-tile"><span>Accuracy</span><strong>${esc(top.summary.avg_accuracy)}</strong><small>${esc(top.questionSetName || "benchmark")}</small></div>`,
     fastest ? `<div class="metric-tile"><span>Fastest</span><strong>${esc(fastest.summary.avg_latency_s)}s</strong><small>${esc(runLabel(fastest))}</small></div>` : "",
     bestTps ? `<div class="metric-tile"><span>Best tok/s</span><strong>${esc(bestTps.summary.avg_tokens_per_second)}</strong><small>${esc(runLabel(bestTps))}</small></div>` : "",
@@ -28,7 +28,7 @@ export function renderWinners(runs) {
 
 export function renderLeaderboard(runs) {
   if (!runs.length) return "Benchmark results appear here after the first streamed test result.";
-  const rows = [...runs].sort((a, b) => (b.summary.passed || 0) - (a.summary.passed || 0) || (b.summary.avg_accuracy || 0) - (a.summary.avg_accuracy || 0) || (a.summary.avg_latency_s || 999999) - (b.summary.avg_latency_s || 999999)).map((run, index) => `<div class="leaderboard-row"><span class="rank">${index + 1}</span><div class="leaderboard-name"><b>${esc(runLabel(run))}</b><span>${esc(run.questionSetName || "")}</span></div><div class="leaderboard-metrics"><span><b>${esc(run.summary.passed)}/${esc(run.summary.tests)}</b> passed</span><span><b>${esc(run.summary.avg_accuracy)}</b> acc</span><span><b>${esc(run.summary.avg_latency_s)}s</b> latency</span><span><b>${esc(run.summary.avg_tokens_per_second ?? "-")}</b> tok/s</span></div></div>`).join("");
+  const rows = [...runs].sort((a, b) => (b.summary.passed || 0) - (a.summary.passed || 0) || (b.summary.avg_accuracy || 0) - (a.summary.avg_accuracy || 0) || (a.summary.avg_latency_s || 999999) - (b.summary.avg_latency_s || 999999)).map((run, index) => `<div class="leaderboard-row"><span class="rank">${index + 1}</span><div class="leaderboard-name"><b>${esc(runLabel(run))}</b><span>${esc(run.questionSetName || "")}</span></div><div class="leaderboard-metrics"><span><b>${esc(run.summary.passed)}/${esc(run.summary.tests)}</b> completed</span><span><b>${esc(run.summary.avg_accuracy)}</b> acc</span><span><b>${esc(run.summary.avg_latency_s)}s</b> latency</span><span><b>${esc(run.summary.avg_tokens_per_second ?? "-")}</b> tok/s</span></div></div>`).join("");
   return `<div class="leaderboard-list">${rows}</div>`;
 }
 

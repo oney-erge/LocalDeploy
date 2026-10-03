@@ -801,9 +801,12 @@ def test_contribute_benchmark_preview_modal(live_server, browser):
         # "active" - Export/Contribute stay disabled until a run is picked.
         page.locator(".run-library-pick input[type=checkbox]").first.check()
         page.wait_for_function("!document.querySelector('#btn-contribute')?.disabled")
+        # The button says what it does: it saves a file locally, it does not upload.
+        sync_api.expect(page.locator("#btn-contribute")).to_have_text("Save anonymized benchmark")
         page.locator("#btn-contribute").click()
         page.wait_for_selector(".modal-card")
         sync_api.expect(page.locator(".modal-card")).to_contain_text("gemma3:4b")
         sync_api.expect(page.locator(".modal-card")).to_contain_text("Never included")
+        sync_api.expect(page.locator(".modal-card")).to_contain_text("Nothing is sent anywhere")
     finally:
         page.close()

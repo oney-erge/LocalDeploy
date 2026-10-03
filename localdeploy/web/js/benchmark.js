@@ -1213,7 +1213,7 @@ async function renderComparison(runs, baseline) {
     .map((name) => `<button class="btn compact response-compare-btn" data-test="${esc(name)}">${esc(name)}</button>`)
     .join("");
   $("#compare-body").innerHTML = `<div class="table-wrap"><table class="results">
-    <thead><tr><th>Run</th><th class="num">Passed</th><th class="num">Accuracy Δ</th><th class="num">Latency Δ</th><th class="num">tok/s Δ</th></tr></thead>
+    <thead><tr><th>Run</th><th class="num">Completed</th><th class="num">Accuracy Δ</th><th class="num">Latency Δ</th><th class="num">tok/s Δ</th></tr></thead>
     <tbody>${rows}</tbody></table></div>
     <h3 class="sub">Response detail</h3><div class="response-test-list">${testButtons}</div>
     <div id="regression-diffs"></div>`;
@@ -1329,8 +1329,8 @@ async function contributeRun() {
     const out = await postJSON("/system/community/preview", { card: runToCardPayload(run) });
     if (!out.success) throw new Error(out.error || "Preview failed.");
     const overlay = simpleModal(
-      "Contribute this benchmark",
-      `Exactly what would be shared - review before saving. ${esc(out.note)}`,
+      "Save an anonymized benchmark",
+      `This anonymized snapshot is saved to a file on this computer. Nothing is sent anywhere. ${esc(out.note)}`,
       `<pre class="log manifest-yaml">${esc(JSON.stringify(out.would_share, null, 2))}</pre>
        <details style="margin-top:0.5rem"><summary class="muted small">Never included</summary>
          <div class="muted small">${out.excluded_fields.map(esc).join(", ")}</div>
