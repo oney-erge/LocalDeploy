@@ -2,6 +2,12 @@
 
 All notable changes to this project should be documented here.
 
+## 0.6.3 - 2026-10-03
+
+- Benchmark leaderboard: the first chip rendered as "90/90 comple..." in 0.6.2, because the longer word
+  "completed" did not fit its fixed-width column. The chips now size to their text and wrap onto another row on
+  narrow screens, so no label is cut off.
+
 ## 0.6.2 - 2026-10-03
 
 - Benchmark screen: the leaderboard and comparison tables said "N/N passed" even for a model with low
