@@ -1454,7 +1454,7 @@ table.results td.num, table.results th.num { text-align: right; font-variant-num
   font-weight: 700;
 }
 .heat-category {
-  color: #d8dde6;
+  color: var(--text);
   font-weight: 650;
 }
 .heat-cell {
@@ -1462,9 +1462,9 @@ table.results td.num, table.results th.num { text-align: right; font-variant-num
   font-variant-numeric: tabular-nums;
   font-weight: 700;
 }
-.heat-good { background: rgba(34, 133, 83, 0.48); color: #d9fce6; }
-.heat-warn { background: rgba(151, 122, 35, 0.42); color: #fbefb6; }
-.heat-bad { background: rgba(143, 55, 55, 0.38); color: #ffd9d9; }
+.heat-good { background: rgba(34, 133, 83, 0.48); color: var(--text); }
+.heat-warn { background: rgba(151, 122, 35, 0.42); color: var(--text); }
+.heat-bad { background: rgba(143, 55, 55, 0.38); color: var(--text); }
 .matrix-wrap {
   max-height: 320px;
   overflow: auto;
@@ -1494,8 +1494,8 @@ table.results td.num, table.results th.num { text-align: right; font-variant-num
   font-weight: 750;
   font-variant-numeric: tabular-nums;
 }
-.matrix-pass { color: #d9fce6; background: rgba(34, 133, 83, 0.32); }
-.matrix-fail { color: #ffd9d9; background: rgba(143, 55, 55, 0.3); }
+.matrix-pass { color: var(--text); background: rgba(34, 133, 83, 0.32); }
+.matrix-fail { color: var(--text); background: rgba(143, 55, 55, 0.3); }
 .matrix-note { margin-top: 0.45rem; }
 .run-library {
   display: grid;
