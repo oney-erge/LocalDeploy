@@ -1375,7 +1375,7 @@ function renderBakeoffResult(evt) {
       <h3 class="sub">${esc(evt.winner)}</h3>
     </div>
     <div class="table-wrap"><table class="results">
-      <thead><tr><th>Model</th><th class="num">Passed</th><th class="num">Accuracy</th><th class="num">Avg latency</th><th class="num">Headroom</th></tr></thead>
+      <thead><tr><th>Model</th><th class="num">Completed</th><th class="num">Accuracy</th><th class="num">Avg latency</th><th class="num">Headroom</th></tr></thead>
       <tbody>${rows}</tbody>
     </table></div>
     <div class="row gap wrap" style="margin-top:0.5rem">
