@@ -771,6 +771,46 @@ def test_bakeoff_progress_and_winner_render(live_server, browser):
         page.close()
 
 
+def test_leaderboard_chips_are_not_cut_off(live_server, browser):
+    """Every chip shows its whole label ("90/90 completed", "3.256s latency", ...), on a
+    narrow desktop and on a phone. Chips wrap onto another row instead of being truncated."""
+    def run(run_id, model, accuracy, latency, tps):
+        tests = [
+            {"name": f"t{i}", "category": "code", "success": True, "accuracy": accuracy,
+             "elapsed_seconds": latency, "approx_tokens_per_second": tps}
+            for i in range(3)
+        ]
+        return {
+            "id": run_id, "createdAt": "2026-06-24T00:00:00.000Z", "profile": run_id, "modelId": model,
+            "source": "restored-history", "tests": tests,
+            "summary": {"tests": 90, "passed": 90, "avg_accuracy": accuracy, "avg_latency_s": latency,
+                        "avg_tokens_per_second": tps},
+        }
+
+    seed = [run("run-a", "gemma3:4b", 0.667, 3.256, 78.44), run("run-b", "qwen3.5:0.8b", 0.253, 1.305, 179.21)]
+    for width in (1024, 390):
+        page = browser.new_page(viewport={"width": width, "height": 1100})
+        try:
+            page.add_init_script(
+                f'window.localStorage.setItem("localdeploy.benchmarkRuns.v1", {json.dumps(json.dumps(seed))});'
+            )
+            page.goto(f"{live_server}/ui", wait_until="domcontentloaded")
+            page.get_by_role("tab", name="Benchmark & Compare").click()
+            page.wait_for_selector(".run-library-row")
+            for box in page.locator(".run-library-pick input[type=checkbox]").all()[:2]:
+                box.check()
+            page.wait_for_selector(".leaderboard-metrics span", state="attached")
+            cut = page.evaluate(
+                "() => [...document.querySelectorAll('.leaderboard-metrics span')]"
+                ".filter(s => s.scrollWidth > s.clientWidth + 1).map(s => s.innerText.trim())"
+            )
+            assert cut == [], f"chips cut off at {width}px: {cut}"
+            texts = page.locator(".leaderboard-metrics span").all_inner_texts()
+            assert any("completed" in t for t in texts)
+        finally:
+            page.close()
+
+
 def test_contribute_benchmark_preview_modal(live_server, browser):
     page = browser.new_page()
     page.route(
