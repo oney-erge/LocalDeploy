@@ -2,6 +2,27 @@
 
 All notable changes to this project should be documented here.
 
+## 0.6.2 - 2026-10-03
+
+- Benchmark screen: the leaderboard and comparison tables said "N/N passed" even for a model with low
+  accuracy, because the number counts requests that finished without an error. They now say "completed".
+  The `passed` field in saved runs and exports is unchanged.
+- "Contribute anonymized benchmark" is now "Save anonymized benchmark", and its dialog says that the
+  snapshot is saved to a file on this computer and nothing is sent anywhere. That was already how it
+  worked; the old wording suggested an upload.
+- The category heatmap and the pass/fail matrix used pale text colours made for the dark theme, so the
+  category names were nearly invisible in the light theme. They now use the theme's text colour.
+- Launchers: the root launchers (`run.bat`, `run.ps1`, `run.command`, `run.sh`) share one lifecycle,
+  report install failures more clearly, and `run.sh` and `run.command` are executable in the repository.
+  Install and run documentation was aligned with them.
+- README: opens with the demo and a short quick start, the Docker example uses the `latest` tag, and the
+  images use absolute URLs so they render on the PyPI project page.
+- The PyPI summary now matches the repository description.
+- Refreshed the animated product walkthrough.
+- Updated runtime dependencies, including FastAPI 0.141.1, huggingface-hub 1.31.0 and python-dotenv
+  1.2.3, and the GitHub Actions used by CI and the publish workflows. CI now caches pip, and Dependabot
+  is configured with grouped updates.
+
 ## 0.6.1 - 2026-08-24
 
 - Published the Python package to PyPI and added a GHCR container publishing workflow with a
