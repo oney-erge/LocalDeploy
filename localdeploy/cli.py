@@ -10,11 +10,47 @@ from __future__ import annotations
 
 import argparse
 import os
+import socket
+import sys
 import threading
 import webbrowser
 
 from . import __version__
 from .utils import api_client_base_url, app_home
+
+
+def port_in_use(host: str, port: int) -> bool:
+    """True when something already accepts connections on host:port."""
+    probe_host = "127.0.0.1" if host in {"", "0.0.0.0"} else "::1" if host == "::" else host
+    try:
+        with socket.create_connection((probe_host, port), timeout=0.3):
+            return True
+    except OSError:
+        return False
+
+
+def choose_port(host: str, port: int, *, explicit: bool, attempts: int = 10) -> int | None:
+    """Return the port to serve on, or None (after saying why) when none can be used.
+
+    Port 8000 is a popular default, so another local tool often holds it. Without this check
+    LocalDeploy printed that port's URL, opened the browser on the other program, and ended with
+    a single bind error and exit code 0. An explicitly requested port is never changed silently.
+    """
+    if not port_in_use(host, port):
+        return port
+    if explicit:
+        print(
+            f"Port {port} is already in use by another program. Pick a different one, "
+            f"for example: localdeploy --port {port + 1}",
+            file=sys.stderr,
+        )
+        return None
+    for candidate in range(port + 1, port + attempts + 1):
+        if not port_in_use(host, candidate):
+            print(f"Port {port} is already in use; using {candidate} instead.")
+            return candidate
+    print(f"Ports {port}-{port + attempts} are all in use. Pick one with --port.", file=sys.stderr)
+    return None
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -42,7 +78,11 @@ def main(argv: list[str] | None = None) -> int:
     from localdeploy.server import app  # noqa: PLC0415 - import after env is settled
 
     host = os.getenv("API_HOST", "127.0.0.1")
-    port = int(os.getenv("API_PORT", "8000"))
+    chosen = choose_port(host, int(os.getenv("API_PORT", "8000")), explicit=bool(args.port) or "API_PORT" in os.environ)
+    if chosen is None:
+        return 2
+    port = chosen
+    os.environ["API_PORT"] = str(port)  # client scripts started from here read the port from the environment
     client_base = api_client_base_url(host, port)
     url = f"{client_base}/ui"
     print(f"LocalDeploy {__version__}")
