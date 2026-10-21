@@ -4,6 +4,10 @@ All notable changes to this project should be documented here.
 
 ## 0.6.3 - 2026-10-03
 
+- `localdeploy` (the pip and uvx entry point) on a taken port 8000 printed that port's UI address, opened the
+  browser on the other program, and ended with one bind error and exit code 0. It now checks the port first:
+  without a port given it uses the next free one and says so; with `--port` or `API_PORT` it stops with a clear
+  message and exit code 2.
 - Model fit badges could disagree for the same hardware. A check that started with the early "live free VRAM" number
   (for example 5.6 GB) could finish after the corrected 8 GB budget had been applied and overwrite it, so one row said
   "cpu only" while its neighbour said "comfortable". Answers for an earlier budget are now discarded.
