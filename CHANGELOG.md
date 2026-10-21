@@ -4,6 +4,16 @@ All notable changes to this project should be documented here.
 
 ## 0.6.3 - 2026-10-03
 
+- Model fit badges could disagree for the same hardware. A check that started with the early "live free VRAM" number
+  (for example 5.6 GB) could finish after the corrected 8 GB budget had been applied and overwrite it, so one row said
+  "cpu only" while its neighbour said "comfortable". Answers for an earlier budget are now discarded.
+- Deploying a model from "Your models" now enables chat for it. Models pulled outside LocalDeploy had no chat profile,
+  so Chat stayed locked behind a second "Enable chat" step. Chat also follows the model you just loaded instead of
+  staying on the first one in the list, and its messages no longer say "Load an installed model" for a loaded model.
+- Monitor showed 8.5 GB of VRAM on a laptop where every other screen said 8.0 GB, because it added the integrated
+  GPU's 512 MB to the discrete card. It now uses the same GPU pool as the fit checks.
+- The UI's cache-busting token had not changed since July, so a browser that already had the page could keep
+  showing old styles and scripts after an upgrade. The token is bumped.
 - Benchmark leaderboard: the first chip rendered as "90/90 comple..." in 0.6.2, because the longer word
   "completed" did not fit its fixed-width column. The chips now size to their text and wrap onto another row on
   narrow screens, so no label is cut off.

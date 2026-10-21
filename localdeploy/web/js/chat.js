@@ -1,12 +1,14 @@
 "use strict";
 
-import { $, $$, downloadFile, esc, fmtBytes, formatExpires, postJSON, postMaybeStream, toast } from "./shared.js?v=20260719-ui32";
+import { $, $$, downloadFile, esc, fmtBytes, formatExpires, postJSON, postMaybeStream, toast } from "./shared.js?v=20261020-ui33";
 
 const state = {
   profiles: [], profileData: {}, profileModels: {}, defaultProfile: null,
   installedLoaded: false, installedList: [],
   chatMessages: [], chatImages: [], chatFiles: [], chatController: null,
   chatSessionBusy: false, chatSessionOperation: null,
+  // True once the user picks a model in the Chat picker; until then Chat follows the loaded model.
+  chatModelChosen: false,
 };
 let initialized = false;
 let onModelStateInvalidated = async () => {};
@@ -101,9 +103,11 @@ function renderChatModelOptions() {
   const names = models.map((item) => item.name).filter(Boolean);
   const byName = Object.fromEntries(models.map((item) => [item.name, item]));
   const defaultModel = state.profileModels[state.defaultProfile];
+  const currentIsLoaded = names.includes(current) && !!byName[current]?.is_loaded;
   const preferred =
-    (names.includes(current) && current) ||
+    (names.includes(current) && (state.chatModelChosen || currentIsLoaded) && current) ||
     names.find((name) => byName[name]?.is_loaded) ||
+    (names.includes(current) && current) ||
     (names.includes(defaultModel) && defaultModel) ||
     names[0];
   select.innerHTML = names
@@ -146,7 +150,14 @@ function updateChatModelState() {
   }
   input.disabled = !ready || !!operation;
   send.disabled = (!ready || !!operation) && !state.chatController;
-  input.placeholder = operation ? `${operation === "unloading" ? "Unloading" : "Loading"} ${model}…` : ready ? "Message this local model" : "Load an installed model to start chatting";
+  const loadedWithoutProfile = !!(model && running && !profile);
+  input.placeholder = operation
+    ? `${operation === "unloading" ? "Unloading" : "Loading"} ${model}…`
+    : ready
+      ? "Message this local model"
+      : loadedWithoutProfile
+        ? "Select Enable chat above to start chatting"
+        : "Load an installed model to start chatting";
   duration.disabled = ready || !!operation;
   action.disabled = !model || !!operation || !!state.chatController;
   session.className = `chat-session-state${ready && !operation ? " ready" : operation ? " loading" : ""}`;
@@ -725,9 +736,12 @@ function renderChatWelcome() {
     return;
   }
   if (!ready) {
+    const loaded = !!runningChatModel(model);
     welcome.innerHTML = `<div class="chat-welcome-mark">${esc(model.slice(0, 1).toUpperCase())}</div>
-      <h3>${esc(model)} is installed</h3>
-      <p class="muted small">Use Load model above to warm it for the displayed keep-loaded duration.</p>`;
+      <h3>${esc(model)} is ${loaded ? "loaded" : "installed"}</h3>
+      <p class="muted small">${loaded
+        ? "Select Enable chat above to start a conversation with it."
+        : "Use Load model above to warm it for the displayed keep-loaded duration."}</p>`;
     list.appendChild(welcome);
     return;
   }
@@ -764,7 +778,7 @@ export function initChat(options = {}) {
   onNavigate = options.onNavigate || onNavigate;
   $("#btn-chat-send")?.addEventListener("click", sendChatMessage);
   $("#btn-chat-clear")?.addEventListener("click", clearChat);
-  $("#chat-model")?.addEventListener("change", updateChatModelState);
+  $("#chat-model")?.addEventListener("change", () => { state.chatModelChosen = true; updateChatModelState(); });
   $("#chat-keep-alive")?.addEventListener("change", updateChatModelState);
   $("#btn-chat-session")?.addEventListener("click", toggleChatSession);
   $("#btn-chat-system-toggle")?.addEventListener("click", () => { const panel = $("#chat-system-panel"); panel.classList.toggle("hidden"); if (!panel.classList.contains("hidden")) $("#chat-system").focus(); });

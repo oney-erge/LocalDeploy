@@ -1,6 +1,6 @@
 "use strict";
 
-import { $, $$, busy, esc, fmtDuration, fmtMb, getJSON, postJSON, skeletonHtml, toast } from "./shared.js?v=20260719-ui32";
+import { $, $$, busy, esc, fmtDuration, fmtMb, getJSON, postJSON, skeletonHtml, toast } from "./shared.js?v=20261020-ui33";
 
 const state = {
   hardware: null,

@@ -230,3 +230,28 @@ def test_system_monitor_ollama_unreachable_is_graceful(monkeypatch):
     assert body["success"] is True
     assert body["ollama_reachable"] is False
     assert body["models"] == []
+
+
+def test_sample_hardware_counts_only_the_largest_compatible_gpu_pool():
+    """A laptop's integrated GPU must not inflate the Monitor's VRAM total."""
+    gpus = [
+        {"name": "RTX", "vendor": "NVIDIA", "backend": "CUDA", "vram_used_mb": 2500,
+         "vram_free_mb": 5692, "vram_total_mb": 8192, "utilization_pct": 40.0},
+        {"name": "Radeon iGPU", "vendor": "AMD", "backend": "Vulkan", "vram_used_mb": 0,
+         "vram_free_mb": None, "vram_total_mb": 512, "utilization_pct": 0.0},
+    ]
+    hw = {
+        "gpus": gpus,
+        "gpu_summary": hardware.summarize_gpus(gpus),
+        "system": {"ram_available_mb": 16384, "ram_total_mb": 32768, "cpu_percent": 10.0},
+    }
+    sample = monitor._sample_hardware(hw)
+    assert sample["vram_total_mb"] == 8192
+    assert sample["vram_used_mb"] == 2500
+    assert sample["gpu_utilization_pct"] == 40.0
+
+
+def test_sample_hardware_without_a_gpu_summary_still_sums_the_gpus():
+    sample = monitor._sample_hardware(_hw(vram_used_mb=1024, vram_total_mb=4096))
+    assert sample["vram_total_mb"] == 4096
+    assert sample["vram_used_mb"] == 1024
