@@ -1,6 +1,6 @@
 "use strict";
 
-import { $, $$, busy, currentTheme, downloadFile, esc, fmtBytes, fmtDuration, fmtMb, formatExpires, getJSON, postJSON, postMaybeStream, simpleModal, skeletonHtml, startElapsed, toast, vramBarHtml } from "./shared.js?v=20260719-ui32";
+import { $, $$, busy, currentTheme, downloadFile, esc, fmtBytes, fmtDuration, fmtMb, formatExpires, getJSON, postJSON, postMaybeStream, simpleModal, skeletonHtml, startElapsed, toast, vramBarHtml } from "./shared.js?v=20261020-ui33";
 
 const state = {
   profiles: [], profileData: {}, profileModels: {}, defaultProfile: null,
@@ -27,6 +27,11 @@ function readonly(value) {
 }
 function targetVram() { return state.systemContext.vramBudgetMb ?? state.systemContext.vramTotalMb ?? state.systemContext.vramFreeMb; }
 export function fitCacheKey(model, budgetMb) { return `${model}|${budgetMb ?? "auto"}`; }
+// A fit answer is only current while the budget it was computed for is still the
+// budget on screen. Without this check a slow answer for an earlier budget (such as
+// the live free VRAM seen before the total arrives) lands after the corrected one
+// and overwrites it, so neighbouring rows disagree about the same hardware.
+export function fitResultIsCurrent(requestKey, model, budgetMb) { return requestKey === fitCacheKey(model, budgetMb); }
 function normalizedProfiles() {
   return state.profiles.map((name) => {
     const raw = clone(state.profileData[name] || {});
@@ -740,12 +745,29 @@ async function fitCheckRow(row, force = false) {
   try {
     const res = await postJSON("/system/fit-check", fitRequestForModel(model, details, installed.size));
     state.fitCache[cacheKey] = res;
-    render(res);
+    if (fitResultIsCurrent(cacheKey, model, targetVram())) render(res);
   } catch (err) {
     slot.innerHTML = `<span class="muted">error</span>`;
     toast(`Fit check failed: ${err.message}`, "error");
   } finally {
     busy(btn, false);
+  }
+}
+
+// A deployed model should be ready to chat with. Models pulled outside LocalDeploy
+// have no enabled profile, which left Chat locked behind a second "Enable chat" step.
+// Best effort: if the profile cannot be saved, Chat still offers that step.
+async function ensureChatProfile(model) {
+  const enabled = state.profiles.some((name) => {
+    const profile = state.profileData[name] || {};
+    return (profile.backend || "ollama") === "ollama" && profile.model_id === model && profile.enabled === true;
+  });
+  if (enabled) return;
+  try {
+    const saved = await postJSON("/profiles/upsert", { model_id: model, backend: "ollama", fields: { enabled: true } });
+    if (saved.success) await loadProfiles();
+  } catch (err) {
+    console.warn("Could not enable chat for", model, err);
   }
 }
 
@@ -763,6 +785,7 @@ async function startInstalledModel(name, btn) {
     });
     stop();
     showServeResult(res);
+    if (res.success) await ensureChatProfile(name);
     await refreshLiveModelState(true);
   } catch (err) {
     stop();

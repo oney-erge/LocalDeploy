@@ -16,6 +16,7 @@ import {
 } from "../../localdeploy/web/js/benchmark-views.js";
 import {
   fitCacheKey,
+  fitResultIsCurrent,
   paramsFromModelName,
   remoteSizeMatches,
 } from "../../localdeploy/web/js/models.js";
@@ -32,6 +33,13 @@ test("model discovery helpers normalize sizes and fit cache keys", () => {
   assert.equal(remoteSizeMatches(3.9, "4to8"), false);
   assert.equal(fitCacheKey("qwen3.5:4b", 8192), "qwen3.5:4b|8192");
   assert.equal(fitCacheKey("qwen3.5:4b", null), "qwen3.5:4b|auto");
+});
+
+test("a fit answer for an earlier budget is not shown once the budget changes", () => {
+  const requestedWithLiveFree = fitCacheKey("qwen3:8b", 5600);
+  assert.equal(fitResultIsCurrent(requestedWithLiveFree, "qwen3:8b", 5600), true);
+  assert.equal(fitResultIsCurrent(requestedWithLiveFree, "qwen3:8b", 8192), false);
+  assert.equal(fitResultIsCurrent(requestedWithLiveFree, "gemma3:4b", 5600), false);
 });
 
 test("benchmark normalization preserves compatibility fields", () => {

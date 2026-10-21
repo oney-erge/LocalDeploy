@@ -155,8 +155,25 @@ def record_request(
         })
 
 
-def _sample_hardware(hw: Dict[str, Any]) -> Dict[str, Any]:
+def _primary_gpus(hw: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """GPUs in the largest compatible pool, the same pool the fit checks use.
+
+    Adding an integrated GPU's small memory to a discrete card's would make the
+    Monitor disagree with the System card (8.5 GB against 8.0 GB on a laptop
+    with an RTX 3080 and a Radeon iGPU).
+    """
     gpus = hw.get("gpus") or []
+    groups = (hw.get("gpu_summary") or {}).get("compatible_groups") or []
+    if groups:
+        indexes = set(groups[0].get("gpu_indexes") or [])
+        picked = [gpu for index, gpu in enumerate(gpus) if index in indexes]
+        if picked:
+            return picked
+    return gpus
+
+
+def _sample_hardware(hw: Dict[str, Any]) -> Dict[str, Any]:
+    gpus = _primary_gpus(hw)
     vram_total = sum(g.get("vram_total_mb") or 0 for g in gpus) or None
     vram_used = sum(g.get("vram_used_mb") or 0 for g in gpus) or None
     utils = [g.get("utilization_pct") for g in gpus if g.get("utilization_pct") is not None]
