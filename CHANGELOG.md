@@ -2,7 +2,7 @@
 
 All notable changes to this project should be documented here.
 
-## 0.6.3 - 2026-10-03
+## 0.6.3 - 2026-10-22
 
 - `localdeploy` (the pip and uvx entry point) on a taken port 8000 printed that port's UI address, opened the
   browser on the other program, and ended with one bind error and exit code 0. It now checks the port first:
@@ -18,6 +18,8 @@ All notable changes to this project should be documented here.
   GPU's 512 MB to the discrete card. It now uses the same GPU pool as the fit checks.
 - The UI's cache-busting token had not changed since July, so a browser that already had the page could keep
   showing old styles and scripts after an upgrade. The token is bumped.
+- Updated runtime dependencies: FastAPI 0.143.1, uvicorn 0.54.0, pydantic 2.14.1, python-dotenv 1.2.4, and
+  huggingface-hub 2.2.0 (a new major version, used for Hugging Face model search and GGUF import).
 - Benchmark leaderboard: the first chip rendered as "90/90 comple..." in 0.6.2, because the longer word
   "completed" did not fit its fixed-width column. The chips now size to their text and wrap onto another row on
   narrow screens, so no label is cut off.
