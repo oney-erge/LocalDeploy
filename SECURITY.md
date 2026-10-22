@@ -39,7 +39,7 @@ Do not commit `.env`, `config.json`, `calibration.json`, model files, private sc
 
 ## Reporting a vulnerability
 
-After the repository is public, maintainers must enable GitHub private vulnerability reporting under Settings / Security / Advanced Security. When the Report a vulnerability button is available, use it instead of opening a public issue.
+Use the **Report a vulnerability** button on the repository's Security tab instead of opening a public issue. GitHub keeps the report private between you and the maintainer.
 
 If that button is not available, open a minimal issue asking for a private contact method. Do not put exploit details, tokens, private prompts, images, model files, or local paths in the public issue.
 
