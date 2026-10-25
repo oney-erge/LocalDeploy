@@ -29,7 +29,7 @@ classifiers = [
 dev = [
   "pytest>=7.0",
   "httpx>=0.27",
-  "ruff==0.17.0",
+  "ruff==0.17.1",
   "build>=1.2",
   "twine>=5.0",
   "playwright>=1.40",
