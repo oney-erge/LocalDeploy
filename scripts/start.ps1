@@ -81,7 +81,8 @@ function Find-Python {
                 # Run in a child process so the Windows Store stub's stderr
                 # does not trigger $ErrorActionPreference = "Stop"
                 $ver = & $cmd --version 2>&1
-                if ("$ver" -match "Python \d") {
+                # Same floor as requires-python in pyproject.toml.
+                if ("$ver" -match "Python 3\.(\d+)" -and [int]$Matches[1] -ge 11) {
                     return $cmd
                 }
             }

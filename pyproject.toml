@@ -9,7 +9,7 @@ description = "Find, deploy, manage, and benchmark local AI models for your hard
 readme = "README.md"
 license = "MIT"
 license-files = ["LICENSE"]
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 authors = [{ name = "oney-erge" }]
 keywords = ["ollama", "llm", "local-ai", "benchmark", "vram", "self-hosted"]
 classifiers = [
@@ -19,7 +19,6 @@ classifiers = [
   "Intended Audience :: End Users/Desktop",
   "Operating System :: OS Independent",
   "Programming Language :: Python :: 3",
-  "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: 3.13",
@@ -74,7 +73,7 @@ testpaths = ["tests"]
 python_files = ["test_*.py"]
 
 [tool.ruff]
-target-version = "py310"
+target-version = "py311"
 
 [tool.ruff.lint]
 # Keep CI's established baseline explicit. Ruff 0.16 broadened its implicit

@@ -10,7 +10,7 @@
   <a href="https://github.com/oney-erge/LocalDeploy/actions/workflows/ci.yml"><img src="https://github.com/oney-erge/LocalDeploy/actions/workflows/ci.yml/badge.svg" alt="CI status" /></a>
   <a href="https://pypi.org/project/localdeploy/"><img src="https://img.shields.io/pypi/v/localdeploy.svg" alt="PyPI version" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="MIT license" /></a>
-  <img src="https://img.shields.io/badge/python-3.10%2B-blue.svg" alt="Python 3.10+" />
+  <img src="https://img.shields.io/badge/python-3.11%2B-blue.svg" alt="Python 3.11+" />
 </p>
 
 <p align="center">
@@ -25,7 +25,7 @@ not provide cloud inference.
 
 ## Quick start
 
-With Python 3.10+ and [Ollama](https://ollama.com) installed:
+With Python 3.11+ and [Ollama](https://ollama.com) installed:
 
 ```bash
 pip install localdeploy
