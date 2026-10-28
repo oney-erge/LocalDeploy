@@ -7,7 +7,7 @@ the UI renders populated rather than empty, and screenshots each tab. No
 Ollama, GPU, or network access is required.
 
 Usage:
-    pip install -e ".[dev]"
+    pip install -e . --group dev
     python -m playwright install chromium
     python scripts/capture_screenshots.py
 """
@@ -102,7 +102,7 @@ def main() -> int:
     try:
         from playwright.sync_api import sync_playwright
     except ImportError:
-        print('Playwright is not installed. Run: pip install -e ".[dev]"')
+        print('Playwright is not installed. Run: pip install -e . --group dev')
         return 1
 
     import uvicorn

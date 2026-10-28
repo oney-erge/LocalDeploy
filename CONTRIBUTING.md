@@ -13,7 +13,7 @@ pytest -q
 node --test tests/js/frontend-modules.test.mjs
 ```
 
-Install an editable development checkout with `pip install -e ".[dev]"`. Runtime pins live
+Install an editable development checkout with `pip install -e . --group dev` (pip 25.1+). Runtime pins live
 in `requirements.txt` and are also used as the package dependencies through `pyproject.toml`,
 so there is one runtime dependency list. Bump `localdeploy/__init__.py::__version__` and add a
 `CHANGELOG.md` section together; a test enforces that they match.
