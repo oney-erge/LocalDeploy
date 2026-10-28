@@ -21,6 +21,7 @@ param(
 )
 $ErrorActionPreference = "Stop"
 $repoRoot = Split-Path -Parent $PSScriptRoot
+. (Join-Path $repoRoot "scripts\install-utils.ps1")
 
 Push-Location $repoRoot
 try {
@@ -32,7 +33,7 @@ try {
             throw "Could not create .venv. Run scripts\start.ps1 once first, or check your Python install."
         }
     }
-    & $python -c "import PyInstaller" 2>$null
+    $null = Invoke-NativeQuiet $python @("-c", "import PyInstaller")
     if ($LASTEXITCODE -ne 0) {
         Write-Host "Installing packaging dependencies (pyinstaller, pystray, pillow)..."
         & $python -m pip install -e ".[packaging]"
