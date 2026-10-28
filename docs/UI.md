@@ -45,6 +45,10 @@ The fit budget comes from the hardware probe. You can override it to compare aga
 
 The Recommended view labels the source of each reason as estimated, published, or measured on this machine. Download and start pulls a missing model and deploys it. The catalog has runtime and size filters, sorting, pagination, source badges, and fit badges. The quant advisor uses tags that are actually published by the Ollama library instead of constructing names from a pattern.
 
+The selected context length is included in the recommendation's memory
+estimate. The estimate is still an approximation; model architecture, actual
+quantization, runtime configuration, and other GPU use affect the result.
+
 The Pull / Import panel accepts Ollama tags, `hf.co/...` GGUF shortcuts, and `modelscope.cn/...:<file>.gguf` shortcuts. It can also register an existing local GGUF file as a llama.cpp profile, or download a direct `.gguf` URL and register it with Ollama.
 
 The Your models card separates disk size from estimated runtime memory. It can sort models and delete several at once. Profiles whose backing model is missing are marked and can be removed under Advanced / All run profiles. For llama.cpp profiles, LocalDeploy also checks that the GGUF file exists.

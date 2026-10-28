@@ -57,13 +57,14 @@ class BakeoffRequest(BaseModel):
 
 
 def _select_candidates(
-    use_case: Optional[str], priority: str, budget_gb: float, download_budget_gb: float, max_candidates: int
+    use_case: Optional[str], priority: str, budget_gb: float, download_budget_gb: float,
+    max_candidates: int, expected_context: int = 4096,
 ) -> List[Dict[str, Any]]:
     """Fit-safe, workload-biased, download-budget-capped picks - the same
     catalog and ranking recommend.py's guided-recommend endpoint uses, just
     greedily packed against a cumulative download-size cap instead of split
     into three labeled buckets."""
-    fitting = _fitting_candidates(budget_gb)
+    fitting = _fitting_candidates(budget_gb, context=expected_context)
     biased = _with_workload_bias(fitting, use_case)
     ranked = _rank(biased, budget_gb, priority)
 
@@ -71,7 +72,7 @@ def _select_candidates(
     cumulative_download_gb = 0.0
     for entry in ranked:
         download_gb = round(entry["params_b"] * _weight_gb_per_b("q4"), 1)
-        if picked and cumulative_download_gb + download_gb > download_budget_gb:
+        if cumulative_download_gb + download_gb > download_budget_gb:
             continue
         entry = dict(entry)
         entry["download_gb"] = download_gb
@@ -94,7 +95,10 @@ def bakeoff_run(req: BakeoffRequest):
             yield "data: [DONE]\n\n"
             return
 
-        candidates = _select_candidates(req.use_case, req.priority, budget_gb, req.download_budget_gb, req.max_candidates)
+        candidates = _select_candidates(
+            req.use_case, req.priority, budget_gb, req.download_budget_gb,
+            req.max_candidates, expected_context=req.expected_context,
+        )
         if not candidates:
             yield sse({"event": "error", "error": "No catalog model fits your budget and download cap."})
             yield "data: [DONE]\n\n"

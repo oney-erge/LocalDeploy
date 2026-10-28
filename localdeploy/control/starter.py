@@ -380,13 +380,13 @@ def _rank(fitting: List[Dict[str, Any]], budget_gb: float, priority: str) -> Lis
     return sorted(fitting, key=lambda e: _priority_score(e, e["required_gb"], budget_gb, priority), reverse=True)
 
 
-def _fitting_candidates(budget: float) -> List[Dict[str, Any]]:
+def _fitting_candidates(budget: float, context: int = 4096) -> List[Dict[str, Any]]:
     """Catalog entries whose estimated requirement fits within `budget` GB,
     each annotated with required_gb/margin_gb. Shared by the guided-recommend
     endpoint below and the automated bakeoff (bakeoff.py)."""
     out = []
     for entry in STARTER_CATALOG:
-        required = _required_gb(entry["params_b"])
+        required = _required_gb(entry["params_b"], context=context)
         if required <= budget:
             out.append({**entry, "required_gb": required, "margin_gb": round(budget - required, 2)})
     return out
@@ -440,11 +440,11 @@ def recommend_models(req: RecommendModelsRequest) -> Dict[str, Any]:
             ),
         }
 
-    fitting = _fitting_candidates(budget_gb)
+    fitting = _fitting_candidates(budget_gb, context=req.expected_context)
     margin_relaxed = False
     note: Optional[str] = None
     if not fitting:
-        fitting = _fitting_candidates(raw_budget_gb)
+        fitting = _fitting_candidates(raw_budget_gb, context=req.expected_context)
         margin_relaxed = bool(fitting)
         if fitting:
             note = (

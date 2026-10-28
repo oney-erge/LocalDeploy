@@ -1,10 +1,10 @@
 "use strict";
 
-import { $, $$, initSharedUI, toast } from "./shared.js?v=20261020-ui33";
-import { getSystemSnapshot, initSystem, refreshOllamaStatus, refreshSystem, setMonitorActive, subscribeToSystemChanges, updateModelContext as updateSystemModelContext } from "./system.js?v=20261020-ui33";
-import { getModelSnapshot, initModels, refreshModels, setDefaultProfile, subscribeToModelChanges, updateSystemContext as updateModelsSystemContext } from "./models.js?v=20261020-ui33";
-import { initChat, updateModelContext as updateChatModelContext } from "./chat.js?v=20261020-ui33";
-import { initBenchmark, refreshBenchmarkMetadata, updateModelContext as updateBenchmarkModelContext, updateSystemContext as updateBenchmarkSystemContext } from "./benchmark.js?v=20261020-ui33";
+import { $, $$, initSharedUI, toast } from "./shared.js?v=20261028-ui34";
+import { getSystemSnapshot, initSystem, refreshOllamaStatus, refreshSystem, setMonitorActive, subscribeToSystemChanges, updateModelContext as updateSystemModelContext } from "./system.js?v=20261028-ui34";
+import { getModelSnapshot, initModels, refreshModels, setDefaultProfile, subscribeToModelChanges, updateSystemContext as updateModelsSystemContext } from "./models.js?v=20261028-ui34";
+import { initChat, updateModelContext as updateChatModelContext } from "./chat.js?v=20261028-ui34";
+import { initBenchmark, refreshBenchmarkMetadata, updateModelContext as updateBenchmarkModelContext, updateSystemContext as updateBenchmarkSystemContext } from "./benchmark.js?v=20261028-ui34";
 
 function propagateSystem(snapshot = getSystemSnapshot()) {
   updateModelsSystemContext(snapshot);

@@ -36,6 +36,12 @@ The UI guides you through hardware detection, model search, a fit estimate,
 deployment, chat, and benchmarking. If you use `uv`, `uvx localdeploy` runs it
 without a permanent install.
 
+Open **Get a model**, choose a use case and context length, and review the
+recommended model's memory and download estimates. Start an installed model or
+explicitly download one, then use **Chat** and **Benchmark** to see how it
+performs on your machine. [A worked comparison](docs/FIT_COMPARISON.md) shows
+how to inspect estimates against another tool.
+
 Need help setting up Python or Ollama? Clone the repository and run its launcher:
 
 ```bash

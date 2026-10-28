@@ -84,6 +84,17 @@ def test_recommend_flags_context_beyond_published_window(monkeypatch):
     assert "exceeds" in reasons_text
 
 
+def test_recommend_uses_requested_context_for_memory_estimate(monkeypatch):
+    monkeypatch.setattr(starter, "detect_hardware", lambda: _hw(vram_free_mb=24 * 1024))
+    short = client.post("/registry/recommend", json={"priority": "lowest_memory", "expected_context": 4096}).json()
+    long = client.post("/registry/recommend", json={"priority": "lowest_memory", "expected_context": 65536}).json()
+    assert short["recommended"]["id"] == long["recommended"]["id"]
+    assert long["recommended"]["required_gb"] > short["recommended"]["required_gb"]
+    assert long["recommended"]["required_gb"] == starter._required_gb(
+        long["recommended"]["params_b"], context=65536
+    )
+
+
 def test_recommend_reasons_are_labeled_by_provenance(monkeypatch):
     monkeypatch.setattr(starter, "detect_hardware", lambda: _hw(vram_free_mb=24 * 1024))
     body = client.post("/registry/recommend", json={}).json()
@@ -104,7 +115,7 @@ def test_recommend_tiny_budget_relaxes_margin(monkeypatch):
     smallest = min(starter.STARTER_CATALOG, key=lambda e: e["params_b"])
     required = starter._required_gb(smallest["params_b"])
     monkeypatch.setattr(starter, "detect_hardware", lambda: _hw(vram_free_mb=int(required * 1024) + 1))
-    body = client.post("/registry/recommend", json={"margin_gb": 2.0}).json()
+    body = client.post("/registry/recommend", json={"margin_gb": 2.0, "expected_context": 4096}).json()
     assert body["success"] is True
     assert body["recommended"] is not None
     assert body["margin_relaxed"] is True

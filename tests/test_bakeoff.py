@@ -44,16 +44,26 @@ def _sse_events(text):
 
 def test_select_candidates_respects_download_budget():
     picks = bakeoff_mod._select_candidates(None, "balanced", budget_gb=24.0, download_budget_gb=6.0, max_candidates=5)
-    assert picks  # at least the first, cheapest-ranked candidate always gets in
+    assert picks
     total = sum(p["download_gb"] for p in picks)
-    assert total <= 6.0 or len(picks) == 1  # a single very first pick is always allowed even if it alone exceeds budget
+    assert total <= 6.0
 
 
-def test_select_candidates_always_includes_at_least_one():
-    # Even a tiny download budget must not return an empty list - the first
-    # ranked candidate is admitted unconditionally.
+def test_select_candidates_respects_even_a_tiny_download_budget():
     picks = bakeoff_mod._select_candidates(None, "balanced", budget_gb=24.0, download_budget_gb=0.01, max_candidates=5)
-    assert len(picks) == 1
+    assert picks == []
+
+
+def test_select_candidates_uses_requested_context_for_memory():
+    picks = bakeoff_mod._select_candidates(
+        None, "lowest_memory", budget_gb=24.0, download_budget_gb=10.0,
+        max_candidates=2, expected_context=65536,
+    )
+    assert picks
+    for candidate in picks:
+        assert candidate["required_gb"] == starter_mod._required_gb(
+            candidate["params_b"], context=65536
+        )
 
 
 def test_select_candidates_workload_bias():

@@ -1,6 +1,6 @@
 "use strict";
 
-import { $, $$, busy, esc, fmtDuration, fmtMb, getJSON, postJSON, skeletonHtml, toast } from "./shared.js?v=20261020-ui33";
+import { $, $$, busy, esc, fmtDuration, fmtMb, getJSON, postJSON, skeletonHtml, toast } from "./shared.js?v=20261028-ui34";
 
 const state = {
   hardware: null,
@@ -512,6 +512,9 @@ async function checkHardware() {
   } finally {
     busy(btn, false);
     updateProgressRail();
+    // Publish hardware as soon as this probe completes, without waiting for
+    // the independent runtime and update checks in refreshSystem().
+    notifySystemChanges();
   }
 }
 

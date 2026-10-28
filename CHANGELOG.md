@@ -4,6 +4,11 @@ All notable changes to this project should be documented here.
 
 ## Unreleased
 
+- Guided recommendations and automated comparisons now include the requested
+  context length in the estimated memory budget. The download budget is also
+  respected when even the first candidate is too large.
+- The detected VRAM budget is shared with model and benchmark screens as soon
+  as the hardware check completes, instead of waiting for unrelated probes.
 - Python 3.11 or newer is now required. Python 3.10 reaches end of life this month, and current Pillow releases
   need 3.11. On Windows the launcher used to accept any Python 3; an older one now leads to the guided Python 3.12
   install instead of a failed setup.
