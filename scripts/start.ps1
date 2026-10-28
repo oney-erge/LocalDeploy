@@ -123,7 +123,7 @@ function Install-PythonGuide {
             # Pipe to Out-Host so winget output goes to the console only and does
             # not get captured as part of this function's return value.
             Invoke-InstallRetry "Python installation" {
-                $output = winget install -e --id Python.Python.3.12 --accept-source-agreements --accept-package-agreements 2>&1
+                $output = (Invoke-InstallNative winget @("install","-e","--id","Python.Python.3.12","--accept-source-agreements","--accept-package-agreements")).Output
                 $code = $LASTEXITCODE
                 $output | Out-Host
                 if ($code -ne 0) { throw "winget Python install failed with exit $($code): $($output -join [Environment]::NewLine)" }
@@ -183,7 +183,7 @@ function Install-OllamaGuide {
         "1" {
             Write-Step "Installing Ollama via winget..."
             Invoke-InstallRetry "Ollama installation" {
-                $output = winget install -e --id Ollama.Ollama --accept-source-agreements --accept-package-agreements 2>&1
+                $output = (Invoke-InstallNative winget @("install","-e","--id","Ollama.Ollama","--accept-source-agreements","--accept-package-agreements")).Output
                 $code = $LASTEXITCODE
                 $output | Out-Host
                 if ($code -ne 0) { throw "winget Ollama install failed with exit $($code): $($output -join [Environment]::NewLine)" }
@@ -289,13 +289,13 @@ function Install-Requirements {
     param([string]$PythonExe)
     Write-Step "Installing Python dependencies (this can take a minute on first run)"
     Invoke-InstallRetry "pip upgrade" {
-        $output = & $PythonExe -m pip install --upgrade pip --quiet 2>&1
+        $output = (Invoke-InstallNative $PythonExe @("-m","pip","install","--upgrade","pip","--quiet")).Output
         $code = $LASTEXITCODE
         $output | Out-Host
         if ($code -ne 0) { throw "pip upgrade failed with exit $($code): $($output -join [Environment]::NewLine)" }
     }
     Invoke-InstallRetry "dependency installation" {
-        $output = & $PythonExe -m pip install --quiet -r requirements.txt 2>&1
+        $output = (Invoke-InstallNative $PythonExe @("-m","pip","install","--quiet","-r","requirements.txt")).Output
         $code = $LASTEXITCODE
         $output | Out-Host
         if ($code -ne 0) { throw "pip install failed with exit $($code): $($output -join [Environment]::NewLine)" }

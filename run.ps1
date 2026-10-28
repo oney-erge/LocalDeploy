@@ -21,18 +21,19 @@ function Wait-Ready {
 
 function Test-DockerReady {
   if (-not (Get-Command docker -ErrorAction SilentlyContinue)) { return $false }
-  docker info *> $null
+  $null = Invoke-NativeQuiet docker @("info")
   return $LASTEXITCODE -eq 0
 }
 function Test-DockerService {
   if (-not (Test-DockerReady)) { return $false }
-  $ids = docker compose ps --quiet 2>$null
+  $ids = Invoke-NativeQuiet docker @("compose","ps","--quiet")
   return -not [string]::IsNullOrWhiteSpace(($ids -join ""))
 }
 
 if ($Action -eq "stop") {
-  if (Test-Path .\logs\api_server.pid) { & .\scripts\stop.ps1; exit $LASTEXITCODE }
+  if (Test-Path .\logs\api_server.pid) { $global:LASTEXITCODE = 0; & .\scripts\stop.ps1; exit $LASTEXITCODE }
   if (Test-DockerService) { docker compose down; exit $LASTEXITCODE }
+  $global:LASTEXITCODE = 0
   & .\scripts\stop.ps1
   exit $LASTEXITCODE
 }
