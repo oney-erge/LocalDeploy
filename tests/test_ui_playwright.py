@@ -8,7 +8,7 @@ history) added for local history management.
 They skip cleanly when Playwright or its browser isn't installed, so the default
 `pytest` run on a fresh checkout stays green:
 
-    pip install -e ".[dev]"
+    pip install -e . --group dev
     python -m playwright install chromium
     pytest tests/test_ui_playwright.py -v
 

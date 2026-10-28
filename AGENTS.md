@@ -17,7 +17,7 @@ packaging, and deployment details.
 Development:
 
 ```powershell
-python -m pip install -e ".[dev]"
+python -m pip install -e . --group dev
 .\scripts\start.ps1 -Foreground
 python -m ruff check .
 pytest -q

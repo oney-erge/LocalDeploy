@@ -12,7 +12,7 @@ intercepts only data-plane calls in the browser so the repository's real UI,
 renderers, navigation, and interactions remain the subject of the recording.
 
 Usage:
-    pip install -e ".[dev]"
+    pip install -e . --group dev
     python -m playwright install chromium
     python scripts/capture_demo_gif.py
 """
@@ -326,7 +326,7 @@ def main() -> int:
     try:
         from playwright.sync_api import sync_playwright
     except ImportError:
-        print('Playwright is not installed. Run: pip install -e ".[dev]"')
+        print('Playwright is not installed. Run: pip install -e . --group dev')
         return 1
 
     ffmpeg = _find_ffmpeg()

@@ -27,7 +27,7 @@ The README uses [docs/assets/demo.gif](assets/demo.gif), captured by the same to
 ## Regenerate the files
 
 ```powershell
-python -m pip install -e ".[dev]"
+python -m pip install -e . --group dev
 python -m playwright install chromium
 python scripts/capture_screenshots.py
 python scripts/capture_demo_gif.py
