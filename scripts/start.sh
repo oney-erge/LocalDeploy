@@ -100,8 +100,8 @@ if ! command -v "$PYTHON" >/dev/null 2>&1; then
     exit 1
   fi
 fi
-if ! "$PYTHON" -c 'import sys; sys.exit(0 if sys.version_info >= (3, 10) else 1)'; then
-  echo "ERROR: Python 3.10+ is required; found $("$PYTHON" --version 2>&1)." >&2
+if ! "$PYTHON" -c 'import sys; sys.exit(0 if sys.version_info >= (3, 11) else 1)'; then
+  echo "ERROR: Python 3.11+ is required; found $("$PYTHON" --version 2>&1)." >&2
   exit 1
 fi
 

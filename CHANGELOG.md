@@ -2,6 +2,12 @@
 
 All notable changes to this project should be documented here.
 
+## Unreleased
+
+- Python 3.11 or newer is now required. Python 3.10 reaches end of life this month, and current Pillow releases
+  need 3.11. On Windows the launcher used to accept any Python 3; an older one now leads to the guided Python 3.12
+  install instead of a failed setup.
+
 ## 0.6.3 - 2026-10-22
 
 - `localdeploy` (the pip and uvx entry point) on a taken port 8000 printed that port's UI address, opened the
