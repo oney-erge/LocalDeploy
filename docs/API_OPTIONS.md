@@ -108,29 +108,37 @@ A decision model does not write text. You give it a piece of text (the *state*) 
 single forward pass. Use it inside an application to classify or route ("is this chat or a task,
 and which route?") and call a language model only when the answer is not confident.
 
-Decision profiles (`"backend": "decision"`) are off by default and need optional packages:
+Decision profiles (`"backend": "decision"`) are off by default. Set `"enabled": true` on one in `config.json`; a model
+with its own license also needs `"license_accepted": true` once you have read it (LiquidAI d1 uses the LFM Open
+License v1.0). Models load on first use, which the response reports as `load_ms`, and stay loaded. The examples in
+`config.example.json` are the starting point, and [Models](MODELS.md#decision-models) compares them.
+
+**On a CPU, use the `llamacpp` adapter.** It starts a `llama-server` for a GGUF file, needs no Python packages, runs no
+model code, and was the fastest option in the comparison. Download a llama.cpp release (b11976 or newer, which serves
+`/v1/systemone`), then set `LLAMACPP_SERVER_PATH` (or the profile's `server_path`) to its `llama-server`:
 
 ```bash
-python -m pip install -r requirements-decision.txt     # or: pip install "localdeploy[decision]"
+# the published Q8_0 file downloads on first use (profile d3_lite_decision), or make a faster Q4_K_M file once:
+python scripts/make_decision_gguf.py ggml-org/vllm-d3-lite-GGUF --quant Q4_K_M
+# then set the profile's model_id to the file it prints, and "enabled": true
 ```
 
-On Windows the default `torch` wheel is CPU-only; install an NVIDIA build first if you want the
-GPU (see the comments in `requirements-decision.txt`). Then set `"enabled": true` on a profile in
-`config.json`. A model with its own license also needs `"license_accepted": true` once you have
-read it (LiquidAI d1 uses the LFM Open License v1.0). Models load on first use, which the response
-reports as `load_ms`, and stay loaded. With `OFFLINE=true` they load from the local Hugging Face
-cache only. Profiles that run code shipped with the model (`d1`) require `"trust_remote_code": true`
-and a pinned `"revision"`; the shipped profiles pin the commit that was tested.
+The PyTorch adapters (`d1`, `laya`) need optional packages instead
+(`python -m pip install -r requirements-decision.txt`, or `pip install "localdeploy[decision]"`). On Windows the default
+`torch` wheel is CPU-only; install an NVIDIA build first for the GPU (see `requirements-decision.txt`). With
+`OFFLINE=true` they load from the local Hugging Face cache only, and profiles that run code shipped with the model (`d1`)
+require `"trust_remote_code": true` and a pinned `"revision"`; the shipped profiles pin the commit that was tested.
 
 | `adapter` | Runs | Notes |
 |---|---|---|
-| `d1` | LiquidAI d1 (`d1-omni-600M`, `d1-3B`) in this process | `device`: `auto`, `cpu` or `cuda`; `dtype` as the model card advises |
+| `llamacpp` | A GGUF decision model in a `llama-server` that LocalDeploy starts, on a free loopback port, restarts if it dies and stops on exit | `model_id` is a `.gguf` path or `repo:quant`; `device` `cpu`, `cuda` or `auto`; `threads`, `context`, `batch`, `server_path`, `port` |
+| `d1` | LiquidAI d1 (`d1-omni-600M`, `d1-3B`) in this process through PyTorch | `device`: `auto`, `cpu` or `cuda`; `dtype` as the model card advises |
 | `laya` | Laya checkpoints (`english`, `multilingual`, `typed-decisions`) in this process | Apache-2.0; `checkpoint` picks one |
 | `systemone-http` | Forwards to another server on this machine that already speaks `/v1/systemone` | Loopback `base_url` only; no extra packages |
 
 ```bash
 curl http://127.0.0.1:8000/v1/systemone -H "Content-Type: application/json" -d '{
-  "model": "d1_omni_600m_decision",
+  "model": "d3_lite_decision",
   "state": "remind me tomorrow at 9am to send the budget draft",
   "questions": {
     "route": {

@@ -89,9 +89,9 @@ def percentile(values: List[float], q: float) -> float:
     return ordered[min(len(ordered) - 1, int(round(q * (len(ordered) - 1))))]
 
 
-def evaluate(url: str, profile: str, dataset: Dict[str, Any], warmup: int, timeout: float, log) -> Dict[str, Any]:
+def evaluate(url: str, profile: str, dataset: Dict[str, Any], warmup: int, timeout: float, log, limit: int = 0) -> Dict[str, Any]:
     question = dataset["route_question"]
-    items = dataset["items"]
+    items = dataset["items"][:limit] if limit else dataset["items"]
     first_load = None
     for _ in range(max(1, warmup)):
         warm = ask(url, profile, "hello", question, timeout)
@@ -177,6 +177,7 @@ def main() -> int:
     parser.add_argument("--dataset", default=str(DEFAULT_DATASET))
     parser.add_argument("--warmup", type=int, default=2, help="untimed requests before measuring")
     parser.add_argument("--timeout", type=float, default=300.0)
+    parser.add_argument("--limit", type=int, default=0, help="only the first N messages, and no steering set (a quick timing sample)")
     parser.add_argument("--out", help="write the full JSON report here")
     args = parser.parse_args()
 
@@ -186,8 +187,10 @@ def main() -> int:
     for profile in args.profile:
         log(f"{profile}: warming up")
         try:
-            result = evaluate(args.url.rstrip("/"), profile, dataset, args.warmup, args.timeout, log)
-            result["steering"] = evaluate_steering(args.url.rstrip("/"), profile, dataset, args.timeout)
+            result = evaluate(args.url.rstrip("/"), profile, dataset, args.warmup, args.timeout, log, args.limit)
+            result["steering"] = (
+                {"n": 0, "accuracy": 0.0, "misses": []} if args.limit else evaluate_steering(args.url.rstrip("/"), profile, dataset, args.timeout)
+            )
         except (RuntimeError, requests.RequestException) as exc:
             log(f"{profile}: FAILED - {exc}")
             results.append({"profile": profile, "error": str(exc)})

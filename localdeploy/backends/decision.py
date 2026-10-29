@@ -3,35 +3,42 @@
 A decision model does not write text. It reads one *state* and a set of named
 *questions* and returns, for each question, a typed answer with a probability per
 option, in a single forward pass. LocalDeploy serves them at ``POST /v1/systemone``
-so an application can ask "is this a task or chat, and which route?" in about a
-tenth of a second on a GPU and fall back to a language model only when the answer
+so an application can ask "is this a task or chat, and which route?" in well under a
+second on a CPU and fall back to a language model only when the answer
 is not confident.
 
-Three adapters share one request and response shape:
+Four adapters share one request and response shape:
 
-* ``d1``             LiquidAI d1 models (``AutoModel`` with ``system_one``)
-* ``laya``           Laya checkpoints (``laya.Router``)
+* ``llamacpp``       a GGUF file in a ``llama-server`` that LocalDeploy starts and manages (no Python
+                     packages, no model code; the fastest option on a CPU)
+* ``d1``             LiquidAI d1 models through PyTorch (``AutoModel`` with ``system_one``)
+* ``laya``           Laya checkpoints through PyTorch (``laya.Router``)
 * ``systemone-http`` any other server that already speaks ``/v1/systemone``
                      (``laya-serve``, ollaya, ...), loopback only like every backend
 
-The heavy packages (torch, transformers, laya) are optional and imported only
+For the PyTorch adapters the heavy packages (torch, transformers, laya) are optional and imported only
 when a decision profile is first used: ``pip install -r requirements-decision.txt``.
 """
 
 from __future__ import annotations
 
+import atexit
 import os
 import re
+import shutil
+import socket
+import subprocess
 import threading
 import time
-from typing import Any, Dict, List, Tuple
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple
 
 import requests
 
-from ..utils import BackendCallError, is_loopback_url, offline_mode, strip_trailing_slash
+from ..utils import BackendCallError, app_home, is_loopback_url, offline_mode, strip_trailing_slash
 
 DECISION_BACKEND = "decision"
-ADAPTER_NAMES = ("d1", "laya", "systemone-http")
+ADAPTER_NAMES = ("d1", "laya", "systemone-http", "llamacpp")
 QUESTION_TYPES = ("choice", "score", "noul")
 
 MAX_QUESTIONS = 32
@@ -135,6 +142,9 @@ class _Adapter:
 
     def decide(self, state: Any, questions: Dict[str, Any]) -> Dict[str, Any]:
         raise NotImplementedError
+
+    def stop(self) -> None:
+        """Release anything the adapter started (a server process). Most adapters hold nothing."""
 
     def describe(self) -> Dict[str, Any]:
         return {"profile": self.profile_name, "loaded": self.loaded}
@@ -271,6 +281,8 @@ class LayaAdapter(_Adapter):
 class HttpAdapter(_Adapter):
     """Forward to another ``/v1/systemone`` server on this machine."""
 
+    send_model = True  # a server hosting several models picks one by name; llama-server hosts exactly one
+
     def load(self) -> None:
         base_url = strip_trailing_slash(str(self.profile.get("base_url") or ""))
         if not base_url or not is_loopback_url(base_url):
@@ -286,7 +298,7 @@ class HttpAdapter(_Adapter):
         if token:
             headers["Authorization"] = f"Bearer {token}"
         body: Dict[str, Any] = {"state": state, "questions": questions}
-        if self.profile.get("model_id"):
+        if self.send_model and self.profile.get("model_id"):
             body["model"] = self.profile["model_id"]
         timeout = float(self.profile.get("timeout_seconds") or 30)
         try:
@@ -304,7 +316,135 @@ class HttpAdapter(_Adapter):
         return {"answers": data["answers"], "usage": data.get("usage") or {}}
 
 
-_ADAPTER_CLASSES = {"d1": D1Adapter, "laya": LayaAdapter, "systemone-http": HttpAdapter}
+def _free_port() -> int:
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+        sock.bind(("127.0.0.1", 0))
+        return int(sock.getsockname()[1])
+
+
+class LlamaCppAdapter(HttpAdapter):
+    """Run a GGUF decision model in a ``llama-server`` that LocalDeploy starts, and forward to it.
+
+    llama.cpp serves ``/v1/systemone`` itself for GGUF decision models. Compared with loading the same model
+    through PyTorch it needs no Python model code (so no ``trust_remote_code``), runs the quantized file, and was
+    2.4 times faster on a CPU in LocalDeploy's own comparison (docs/MODELS.md). The server is started on first
+    use on a free loopback port, restarted if it dies, and stopped when LocalDeploy exits.
+
+    ``model_id`` is a path to a ``.gguf`` file, or ``repo:quant`` for llama.cpp to fetch from Hugging Face
+    (for example ``ggml-org/vllm-d3-lite-GGUF:Q8_0``).
+    """
+
+    send_model = False
+
+    def __init__(self, profile_name: str, profile: Dict[str, Any]) -> None:
+        super().__init__(profile_name, profile)
+        self.process: Optional[subprocess.Popen] = None
+        self.log_path: Optional[Path] = None
+        atexit.register(self.stop)
+
+    def _server(self) -> str:
+        configured = str(self.profile.get("server_path") or os.getenv("LLAMACPP_SERVER_PATH") or "").strip()
+        found = configured if configured and Path(configured).is_file() else shutil.which(configured or "llama-server")
+        if not found:
+            raise DecisionUnavailable(
+                f"Profile '{self.profile_name}' needs llama.cpp's llama-server. Download a release from "
+                "https://github.com/ggml-org/llama.cpp/releases (b11976 or newer: it serves /v1/systemone), then set "
+                "LLAMACPP_SERVER_PATH or this profile's \"server_path\" to llama-server."
+            )
+        return found
+
+    def _command(self, server: str, port: int) -> List[str]:
+        profile = self.profile
+        model = str(profile.get("model_id") or "").strip()
+        if not model:
+            raise DecisionUnavailable(f"Profile '{self.profile_name}' needs a model_id (a .gguf path or repo:quant).")
+        batch = str(int(profile.get("batch") or 4096))  # a question is read in one batch, so it must hold the whole prompt
+        command = [
+            server, "--host", "127.0.0.1", "--port", str(port),
+            "-c", str(int(profile.get("context") or 4096)), "-b", batch, "-ub", batch, "-np", "1",
+        ]
+        if Path(model).suffix.lower() == ".gguf":
+            if not Path(model).is_file():
+                raise DecisionUnavailable(f"Profile '{self.profile_name}': the model file {model} does not exist.")
+            command += ["-m", model]
+        else:
+            command += ["-hf", model]
+            if offline_mode():
+                command += ["--offline"]
+        if profile.get("threads"):
+            command += ["-t", str(int(profile["threads"]))]
+        device = str(profile.get("device") or "auto").lower()
+        if device == "cpu":
+            command += ["-ngl", "0"]
+        elif device == "cuda":
+            command += ["-ngl", "99"]
+        elif device != "auto":
+            raise DecisionUnavailable("device must be 'auto', 'cpu' or 'cuda'.")
+        return command
+
+    def load(self) -> None:
+        command = self._command(self._server(), int(self.profile.get("port") or _free_port()))
+        port = int(command[command.index("--port") + 1])
+        logs = app_home() / "logs"
+        logs.mkdir(parents=True, exist_ok=True)
+        self.log_path = logs / f"decision-{re.sub(r'[^A-Za-z0-9_.-]', '_', self.profile_name)}.log"
+        with open(self.log_path, "ab") as log:
+            self.process = subprocess.Popen(  # noqa: S603 - the command is built here from validated profile fields
+                command, stdout=log, stderr=log, stdin=subprocess.DEVNULL,
+                creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+            )
+        base = f"http://127.0.0.1:{port}"
+        deadline = time.monotonic() + float(self.profile.get("startup_timeout_seconds") or 180)
+        while time.monotonic() < deadline:
+            if self.process.poll() is not None:
+                raise DecisionUnavailable(
+                    f"llama-server for '{self.profile_name}' exited with code {self.process.returncode} while starting. "
+                    f"Last log lines: {self._log_tail()}"
+                )
+            try:
+                reply = requests.get(f"{base}/health", timeout=2)
+                if reply.status_code == 200:
+                    self.url = f"{base}/v1/systemone"
+                    self.loaded = True
+                    return
+            except requests.RequestException:
+                pass  # still starting
+            time.sleep(0.5)
+        self.stop()
+        raise DecisionUnavailable(
+            f"llama-server for '{self.profile_name}' did not become ready in time. Last log lines: {self._log_tail()}"
+        )
+
+    def decide(self, state: Any, questions: Dict[str, Any]) -> Dict[str, Any]:
+        if self.process is None or self.process.poll() is not None:
+            self.loaded = False
+            self.load()  # it died since the last request (or was stopped): start it again
+        return super().decide(state, questions)
+
+    def _log_tail(self, lines: int = 6) -> str:
+        try:
+            text = self.log_path.read_text(encoding="utf-8", errors="replace") if self.log_path else ""
+        except OSError:
+            return "(no log)"
+        return " | ".join(text.strip().splitlines()[-lines:]) or "(empty log)"
+
+    def stop(self) -> None:
+        process, self.process, self.loaded = self.process, None, False
+        if process is not None and process.poll() is None:
+            process.terminate()
+            try:
+                process.wait(timeout=10)
+            except subprocess.TimeoutExpired:
+                process.kill()
+
+    def describe(self) -> Dict[str, Any]:
+        info = super().describe()
+        if self.loaded:
+            info["server"] = self.url
+        return info
+
+
+_ADAPTER_CLASSES = {"d1": D1Adapter, "laya": LayaAdapter, "systemone-http": HttpAdapter, "llamacpp": LlamaCppAdapter}
 
 
 def _files_hint(profile_name: str, exc: Exception) -> str:
@@ -323,7 +463,7 @@ _adapters: Dict[Tuple[str, str], _Adapter] = {}
 
 
 def _fingerprint(profile: Dict[str, Any]) -> str:
-    keys = ("adapter", "model_id", "revision", "device", "dtype", "checkpoint", "base_url", "threads")
+    keys = ("adapter", "model_id", "revision", "device", "dtype", "checkpoint", "base_url", "threads", "server_path", "context", "batch", "port")
     return "|".join(str(profile.get(key)) for key in keys)
 
 
@@ -396,8 +536,10 @@ def status() -> List[Dict[str, Any]]:
 
 
 def reset() -> None:
-    """Forget every loaded model (tests, and config changes)."""
+    """Forget every loaded model and stop any server LocalDeploy started (tests, and config changes)."""
     with _registry_lock:
+        for adapter in _adapters.values():
+            adapter.stop()
         _adapters.clear()
 
 

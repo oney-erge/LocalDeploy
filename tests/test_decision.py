@@ -398,6 +398,136 @@ def test_a_model_crash_is_a_502_not_a_traceback(monkeypatch) -> None:
     assert "CUDA out of memory" in response.json()["error"]["message"]
 
 
+# --- the llama.cpp server LocalDeploy starts ---------------------------------
+
+
+class _FakeProcess:
+    def __init__(self, exit_code=None):
+        self.exit_code, self.terminated, self.returncode = exit_code, False, exit_code
+
+    def poll(self):
+        return self.exit_code
+
+    def terminate(self):
+        self.terminated, self.exit_code, self.returncode = True, 0, 0
+
+    def wait(self, timeout=None):
+        return self.exit_code
+
+    def kill(self):
+        self.terminate()
+
+
+def _llama_profile(tmp_path, **overrides):
+    model = tmp_path / "d3-lite.gguf"
+    model.write_bytes(b"gguf")
+    server = tmp_path / "llama-server.exe"
+    server.write_bytes(b"exe")
+    return _profile(**{"adapter": "llamacpp", "model_id": str(model), "server_path": str(server), "port": 18099, **overrides})
+
+
+@pytest.fixture
+def _llama(monkeypatch, tmp_path):
+    """Replace the process and the health check; hand back what was started."""
+    started = {"commands": [], "process": _FakeProcess()}
+    monkeypatch.setenv("LOCALDEPLOY_HOME", str(tmp_path))
+    monkeypatch.setattr(decision, "app_home", lambda: tmp_path)
+
+    def popen(command, **kwargs):
+        started["commands"].append(command)
+        started["process"] = _FakeProcess()
+        return started["process"]
+
+    monkeypatch.setattr(decision.subprocess, "Popen", popen)
+    monkeypatch.setattr(decision.requests, "get", lambda url, timeout=None: _Reply(status=200, payload={"status": "ok"}))
+    monkeypatch.setattr(decision.time, "sleep", lambda s: None)
+    return started
+
+
+def test_llama_server_is_started_once_on_first_use_and_asked_for_the_decision(monkeypatch, tmp_path, _llama) -> None:
+    sent = {}
+    monkeypatch.setattr(
+        decision.requests, "post",
+        lambda url, json=None, headers=None, timeout=None: sent.update(url=url, body=json)
+        or _Reply(payload={"answers": {"route": {"choice": "filesystem.manage"}}, "usage": {"input_tokens": 9}}),
+    )
+    profile = _llama_profile(tmp_path, device="cpu", threads=6)
+    _use_config(monkeypatch, {"gguf": profile})
+
+    first = _post({"state": "hi", "questions": {"route": ROUTE}, "model": "gguf"})
+    _post({"state": "again", "questions": {"route": ROUTE}, "model": "gguf"})
+
+    assert first.status_code == 200 and first.json()["answers"]["route"]["choice"] == "filesystem.manage"
+    assert len(_llama["commands"]) == 1  # not once per request
+    command = _llama["commands"][0]
+    assert command[command.index("-m") + 1] == profile["model_id"]
+    assert command[command.index("--host") + 1] == "127.0.0.1" and command[command.index("--port") + 1] == "18099"
+    assert command[command.index("-t") + 1] == "6" and command[command.index("-ngl") + 1] == "0"
+    assert "-b" in command and "-ub" in command  # the prompt is read in one batch
+    assert sent["url"] == "http://127.0.0.1:18099/v1/systemone"
+    assert "model" not in sent["body"]  # llama-server hosts exactly one model
+
+
+def test_llama_server_gpu_and_huggingface_forms(monkeypatch, tmp_path, _llama) -> None:
+    adapter = decision.LlamaCppAdapter("p", _llama_profile(tmp_path, device="cuda", model_id="ggml-org/vllm-d3-lite-GGUF:Q8_0"))
+    command = adapter._command(adapter._server(), 18099)
+    assert command[command.index("-hf") + 1] == "ggml-org/vllm-d3-lite-GGUF:Q8_0" and "-m" not in command
+    assert command[command.index("-ngl") + 1] == "99" and "--offline" not in command
+
+    monkeypatch.setattr(decision, "offline_mode", lambda: True)
+    assert "--offline" in adapter._command(adapter._server(), 18099)
+
+
+def test_a_missing_llama_server_says_where_to_get_it(monkeypatch, tmp_path, _llama) -> None:
+    monkeypatch.delenv("LLAMACPP_SERVER_PATH", raising=False)
+    monkeypatch.setattr(decision.shutil, "which", lambda name: None)
+    adapter = decision.LlamaCppAdapter("p", _llama_profile(tmp_path, server_path=None))
+    with pytest.raises(decision.DecisionUnavailable, match="LLAMACPP_SERVER_PATH"):
+        adapter.load()
+    assert _llama["commands"] == []
+
+
+def test_a_missing_model_file_is_named(monkeypatch, tmp_path, _llama) -> None:
+    adapter = decision.LlamaCppAdapter("p", _llama_profile(tmp_path, model_id=str(tmp_path / "gone.gguf")))
+    with pytest.raises(decision.DecisionUnavailable, match="does not exist"):
+        adapter.load()
+
+
+def test_a_server_that_dies_while_starting_reports_its_log(monkeypatch, tmp_path, _llama) -> None:
+    def popen(command, stdout=None, **kwargs):
+        stdout.write(b"error: failed to load model\n")
+        stdout.flush()
+        return _FakeProcess(exit_code=1)
+
+    monkeypatch.setattr(decision.subprocess, "Popen", popen)
+    adapter = decision.LlamaCppAdapter("p", _llama_profile(tmp_path))
+    with pytest.raises(decision.DecisionUnavailable, match="exited with code 1.*failed to load model"):
+        adapter.load()
+
+
+def test_a_server_that_never_becomes_ready_is_stopped(monkeypatch, tmp_path, _llama) -> None:
+    monkeypatch.setattr(decision.requests, "get", lambda url, timeout=None: _Reply(status=503, payload={}))
+    clock = iter(range(0, 1000, 100))
+    monkeypatch.setattr(decision.time, "monotonic", lambda: next(clock))
+    adapter = decision.LlamaCppAdapter("p", _llama_profile(tmp_path, startup_timeout_seconds=150))
+    with pytest.raises(decision.DecisionUnavailable, match="did not become ready"):
+        adapter.load()
+    assert _llama["process"].terminated
+
+
+def test_a_server_that_died_is_started_again_and_reset_stops_it(monkeypatch, tmp_path, _llama) -> None:
+    monkeypatch.setattr(decision.requests, "post", lambda *a, **k: _Reply(payload={"answers": {"q": {}}}))
+    _use_config(monkeypatch, {"gguf": _llama_profile(tmp_path)})
+    _post({"state": "hi", "questions": {"route": ROUTE}, "model": "gguf"})
+    _llama["process"].exit_code = 137  # killed from outside (out of memory, a user closing it)
+
+    assert _post({"state": "hi", "questions": {"route": ROUTE}, "model": "gguf"}).status_code == 200
+    assert len(_llama["commands"]) == 2
+
+    decision.reset()
+    assert _llama["process"].terminated
+
+
 # --- shipped configuration --------------------------------------------------
 
 
@@ -408,7 +538,10 @@ def _example_profiles():
 
 def test_shipped_decision_profiles_are_off_pinned_and_licence_gated() -> None:
     decision_profiles = {n: p for n, p in _example_profiles().items() if p.get("backend") == "decision"}
-    assert {"d1_omni_600m_decision", "d1_3b_decision", "laya_decision", "laya_typed_decision"} <= set(decision_profiles)
+    assert {
+        "d1_omni_600m_decision", "d1_3b_decision", "laya_decision", "laya_typed_decision",
+        "d3_lite_decision", "d3_nano_decision", "d3_mini_decision", "d1_3b_gguf_decision",
+    } <= set(decision_profiles)
     for name, profile in decision_profiles.items():
         assert profile["enabled"] is False, name
         assert profile["adapter"] in decision.ADAPTER_NAMES, name
@@ -417,6 +550,11 @@ def test_shipped_decision_profiles_are_off_pinned_and_licence_gated() -> None:
         if profile["adapter"] == "d1":
             assert profile["trust_remote_code"] is True and profile["license_accepted"] is False, name
             assert profile["license_acceptance_required"], name
+        if profile["adapter"] == "llamacpp":
+            assert profile["model_id"], name
+            assert "trust_remote_code" not in profile, f"{name}: a GGUF runs no model code"
+        if profile.get("license_acceptance_required"):
+            assert profile["license_accepted"] is False, f"{name} must not ship pre-accepted"
 
 
 def test_example_profiles_pass_the_adapter_check() -> None:

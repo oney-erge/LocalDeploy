@@ -13,11 +13,11 @@ that no longer starts (for example one built from an Anaconda that was later
 removed), the launcher moves it to `.setup/venv-broken-<time>` and builds a new
 one; nothing is deleted.
 
-Decision models (`/v1/systemone`) are optional and need extra packages: run
-`python -m pip install -r requirements-decision.txt` in LocalDeploy's
-environment. The packages take about 4.5 GB with CUDA support, and each model
-downloads on first use (about 2.2 GB for d1-omni-600M, 2.3 GB for Laya, 5.9 GB
-for d1-3B). See [Decision models](API_OPTIONS.md#decision-models).
+Decision models (`/v1/systemone`) are optional. The `llamacpp` adapter needs no Python packages: download a
+[llama.cpp release](https://github.com/ggml-org/llama.cpp/releases) (b11976 or newer) and set `LLAMACPP_SERVER_PATH` to its
+`llama-server`; a model is a 0.6 to 2.4 GB GGUF that downloads on first use. The PyTorch adapters (`d1`, `laya`) need
+`python -m pip install -r requirements-decision.txt`, which takes about 4.5 GB with CUDA support and downloads
+2.2 to 5.9 GB per model. See [Decision models](API_OPTIONS.md#decision-models).
 
 From a clone:
 
