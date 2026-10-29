@@ -4,6 +4,7 @@ from __future__ import annotations
 import contextlib
 import copy
 import json
+import sys
 import types
 from pathlib import Path
 
@@ -480,11 +481,135 @@ def test_llama_server_gpu_and_huggingface_forms(monkeypatch, tmp_path, _llama) -
 
 def test_a_missing_llama_server_says_where_to_get_it(monkeypatch, tmp_path, _llama) -> None:
     monkeypatch.delenv("LLAMACPP_SERVER_PATH", raising=False)
+    monkeypatch.delenv("LOCALAPPDATA", raising=False)
     monkeypatch.setattr(decision.shutil, "which", lambda name: None)
     adapter = decision.LlamaCppAdapter("p", _llama_profile(tmp_path, server_path=None))
-    with pytest.raises(decision.DecisionUnavailable, match="LLAMACPP_SERVER_PATH"):
+    with pytest.raises(decision.DecisionUnavailable, match="winget install ggml.llamacpp.*LLAMACPP_SERVER_PATH"):
         adapter.load()
     assert _llama["commands"] == []
+
+
+def test_llama_server_is_found_in_a_winget_install_like_the_launcher_finds_it(monkeypatch, tmp_path) -> None:
+    """WinGet puts it on PATH only for programs started after the install."""
+    package = tmp_path / "Microsoft" / "WinGet" / "Packages" / "ggml.llamacpp_Microsoft.Winget.Source_8wekyb3d8bbwe"
+    package.mkdir(parents=True)
+    (package / "llama-server.exe").write_bytes(b"exe")
+    (package / "llama-quantize.exe").write_bytes(b"exe")
+    monkeypatch.setenv("LOCALAPPDATA", str(tmp_path))
+    monkeypatch.setattr(decision.shutil, "which", lambda name: None)
+
+    server = decision.find_llama_server("")
+    assert server == str(package / "llama-server.exe")
+    assert decision.find_llama_quantize(server) == str(package / "llama-quantize.exe")
+    # A configured path that is wrong is reported, not quietly swapped for another copy.
+    assert decision.find_llama_server(str(tmp_path / "elsewhere" / "llama-server.exe")) is None
+
+
+def test_an_old_llama_server_without_systemone_is_named_with_its_build(monkeypatch, tmp_path, _llama) -> None:
+    monkeypatch.setattr(decision.requests, "post", lambda *a, **k: _Reply(status=404, payload={"error": "not found"}))
+    monkeypatch.setattr(decision, "llama_server_build", lambda server: 9297)
+    _use_config(monkeypatch, {"gguf": _llama_profile(tmp_path)})
+
+    response = _post({"state": "hi", "questions": {"route": ROUTE}, "model": "gguf"})
+
+    assert response.status_code == 503
+    message = response.json()["error"]["message"]
+    assert "build 9297" in message and "/v1/systemone" in message and "winget upgrade ggml.llamacpp" in message
+
+
+@pytest.mark.parametrize(
+    "output, build",
+    [
+        ("ggml_cuda_init: found 1 CUDA devices\nversion: 0.8.0-dev (build 11976, commit 2e0d86beb)\nbuilt with Clang\n", 11976),
+        ("version: 9297 (b0df4c0cf)\nbuilt with Clang 19.1.5 for Windows x86_64\n", 9297),
+        ("nothing useful", None),
+    ],
+)
+def test_the_build_number_is_read_from_llama_server_version(monkeypatch, output, build) -> None:
+    """Older releases print the build as the version; newer ones print a semantic version and the build."""
+    monkeypatch.setattr(decision.subprocess, "run", lambda *a, **k: types.SimpleNamespace(stdout="", stderr=output))
+    assert decision.llama_server_build("llama-server") == build
+
+
+# --- quantize on first use ----------------------------------------------------
+
+REPO_FILES = ["README.md", "mmproj-vllm-d3-lite-BF16.gguf", "vllm-d3-lite-BF16.gguf", "vllm-d3-lite-Q8_0.gguf"]
+
+
+@pytest.fixture
+def _hub(monkeypatch, tmp_path):
+    """A fake huggingface_hub and llama-quantize; hands back what was asked of them."""
+    seen = {"listed": 0, "downloaded": [], "commands": []}
+    source = tmp_path / "hub" / "vllm-d3-lite-BF16.gguf"
+    source.parent.mkdir()
+    source.write_bytes(b"bf16")
+
+    class _Api:
+        def list_repo_files(self, repo):
+            seen["listed"] += 1
+            return REPO_FILES
+
+    def download(repo, name, local_files_only=False):
+        seen["downloaded"].append(name)
+        return str(source)
+
+    def run(command, **kwargs):
+        seen["commands"].append(command)
+        Path(command[2]).write_bytes(b"q4")
+        return types.SimpleNamespace(returncode=0, stdout="", stderr="")
+
+    monkeypatch.setitem(sys.modules, "huggingface_hub", types.SimpleNamespace(HfApi=_Api, hf_hub_download=download))
+    monkeypatch.setattr(decision.subprocess, "run", run)
+    monkeypatch.setattr(decision, "offline_mode", lambda: False)
+    seen["source"] = source
+    return seen
+
+
+def test_quantize_makes_the_file_once_from_the_bf16_model_not_the_vision_projector(tmp_path, _hub) -> None:
+    out = tmp_path / "models"
+
+    first = decision.quantized_gguf("ggml-org/vllm-d3-lite-GGUF:Q8_0", "Q4_K_M", out, quantizer="llama-quantize")
+    again = decision.quantized_gguf("ggml-org/vllm-d3-lite-GGUF", "Q4_K_M", out, quantizer="llama-quantize")
+
+    assert first == again == out / "vllm-d3-lite-Q4_K_M.gguf" and first.read_bytes() == b"q4"
+    assert _hub["downloaded"] == ["vllm-d3-lite-BF16.gguf"] and _hub["listed"] == 1  # the second call used the file
+    command = _hub["commands"][0]
+    assert command[0] == "llama-quantize" and command[1] == str(_hub["source"]) and command[3] == "Q4_K_M"
+    assert not list(out.glob("*.partial"))
+
+
+def test_quantize_reports_a_failure_and_leaves_no_half_written_file(monkeypatch, tmp_path, _hub) -> None:
+    monkeypatch.setattr(
+        decision.subprocess, "run",
+        lambda command, **kwargs: types.SimpleNamespace(returncode=1, stdout="", stderr="main: invalid ftype 'Q9'"),
+    )
+    with pytest.raises(decision.DecisionUnavailable, match="exit 1.*invalid ftype"):
+        decision.quantized_gguf("ggml-org/vllm-d3-lite-GGUF", "Q4_K_M", tmp_path / "models", quantizer="q")
+    assert not (tmp_path / "models" / "vllm-d3-lite-Q4_K_M.gguf").exists()
+
+
+def test_quantize_refuses_odd_types_and_offline_downloads(monkeypatch, tmp_path, _hub) -> None:
+    with pytest.raises(decision.DecisionUnavailable, match="llama.cpp type"):
+        decision.quantized_gguf("ggml-org/vllm-d3-lite-GGUF", "Q4 --help", tmp_path, quantizer="q")
+    monkeypatch.setattr(decision, "offline_mode", lambda: True)
+    with pytest.raises(decision.DecisionUnavailable, match="OFFLINE=true"):
+        decision.quantized_gguf("ggml-org/vllm-d3-lite-GGUF", "Q4_K_M", tmp_path, quantizer="q")
+
+
+def test_a_profile_with_quantize_starts_llama_server_on_the_made_file(monkeypatch, tmp_path, _llama, _hub) -> None:
+    server = tmp_path / "bin" / "llama-server.exe"
+    server.parent.mkdir()
+    server.write_bytes(b"exe")
+    (server.parent / "llama-quantize.exe").write_bytes(b"exe")
+    adapter = decision.LlamaCppAdapter(
+        "p", _profile(adapter="llamacpp", model_id="ggml-org/vllm-d3-lite-GGUF", quantize="Q4_K_M", server_path=str(server))
+    )
+
+    command = adapter._command(adapter._server(), 18099)
+
+    made = tmp_path / "models" / "decision" / "vllm-d3-lite-Q4_K_M.gguf"
+    assert command[command.index("-m") + 1] == str(made) and "-hf" not in command
+    assert _hub["commands"][0][0] == str(server.parent / "llama-quantize.exe")
 
 
 def test_a_missing_model_file_is_named(monkeypatch, tmp_path, _llama) -> None:

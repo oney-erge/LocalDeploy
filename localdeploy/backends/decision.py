@@ -306,7 +306,7 @@ class HttpAdapter(_Adapter):
         except requests.RequestException as exc:
             raise DecisionError(f"decision server at {self.url} is not reachable: {exc}") from exc
         if response.status_code != 200:
-            raise DecisionError(f"decision server at {self.url} answered HTTP {response.status_code}: {response.text[:300]}")
+            raise self._http_error(response)
         try:
             data = response.json()
         except ValueError as exc:
@@ -314,6 +314,116 @@ class HttpAdapter(_Adapter):
         if not isinstance(data, dict) or "answers" not in data:
             raise DecisionError(f"decision server at {self.url} returned no 'answers'.")
         return {"answers": data["answers"], "usage": data.get("usage") or {}}
+
+    def _http_error(self, response: requests.Response) -> BackendCallError:
+        return DecisionError(f"decision server at {self.url} answered HTTP {response.status_code}: {response.text[:300]}")
+
+
+LLAMACPP_TESTED_BUILD = 11976  # the llama.cpp release the comparison in docs/MODELS.md used
+LLAMACPP_GET = (
+    "On Windows: winget install ggml.llamacpp (or winget upgrade ggml.llamacpp). On macOS: brew install llama.cpp. "
+    "Or download a release from https://github.com/ggml-org/llama.cpp/releases and set LLAMACPP_SERVER_PATH "
+    "(or the profile's \"server_path\") to its llama-server."
+)
+
+
+def _winget_llamacpp(name: str) -> Optional[str]:
+    """The copy ``winget install ggml.llamacpp`` keeps in the WinGet package folder. WinGet also puts it on PATH,
+    but only for programs started after the install, so a LocalDeploy that was already running would miss it."""
+    local = os.getenv("LOCALAPPDATA")
+    if not local:
+        return None
+    packages = Path(local) / "Microsoft" / "WinGet" / "Packages"
+    for candidate in sorted(packages.glob(f"ggml.llamacpp*/**/{name}.exe")):
+        return str(candidate)
+    return None
+
+
+def find_llama_server(configured: str = "") -> Optional[str]:
+    """llama-server, looked for the way scripts/start_llamacpp.ps1 looks: the configured path or command, else
+    PATH, else a WinGet install. A configured value that does not resolve is not replaced by another copy."""
+    if configured:
+        return configured if Path(configured).is_file() else shutil.which(configured)
+    return shutil.which("llama-server") or _winget_llamacpp("llama-server")
+
+
+def find_llama_quantize(server: Optional[str] = None) -> Optional[str]:
+    """llama-quantize: next to llama-server (every release and the WinGet package ship both), else PATH or WinGet."""
+    if server:
+        sibling = Path(server).with_name("llama-quantize" + Path(server).suffix)
+        if sibling.is_file():
+            return str(sibling)
+    return shutil.which("llama-quantize") or _winget_llamacpp("llama-quantize")
+
+
+def llama_server_build(server: str) -> Optional[int]:
+    """The build number ``llama-server --version`` reports, or None. Older builds print ``version: 9297 (b0df4c0cf)``,
+    newer ones ``version: 0.8.0-dev (build 11976, commit 2e0d86beb)``."""
+    try:
+        result = subprocess.run(  # noqa: S603 - the path was found or configured above
+            [server, "--version"], capture_output=True, text=True, timeout=20, check=False,
+            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+        )
+    except (OSError, subprocess.SubprocessError):
+        return None
+    output = (result.stdout or "") + (result.stderr or "")
+    match = re.search(r"\(build (\d+)", output) or re.search(r"version:\s*(\d+)\s*\(", output)
+    return int(match.group(1)) if match else None
+
+
+def _repo_stem(repo: str) -> str:
+    name = repo.split(":", 1)[0].rstrip("/").split("/")[-1]
+    return re.sub(r"[-_]gguf$", "", name, flags=re.IGNORECASE)
+
+
+def quantized_gguf(
+    repo: str, quant: str, out_dir: Path, *, quantizer: str, source_file: Optional[str] = None, threads: int = 0, log=None
+) -> Path:
+    """A ``quant`` GGUF of a Hugging Face GGUF repository, made once with llama-quantize from its BF16 file.
+
+    The published d3 files are Q8_0 and BF16; on a CPU a Q4_K_M file answered about 1.8 times faster with the
+    same routing accuracy in docs/MODELS.md. The result is kept in ``out_dir`` and reused, so only the first call
+    downloads (the BF16 file of d3-lite is about 1.7 GB) and quantizes.
+    """
+    log = log or (lambda message: None)
+    if not re.fullmatch(r"[A-Za-z0-9_]+", quant):
+        raise DecisionUnavailable(f"quantize must be a llama.cpp type such as Q4_K_M, not {quant!r}.")
+    repo = repo.split(":", 1)[0]
+    target = Path(out_dir) / f"{_repo_stem(repo)}-{quant}.gguf"
+    if target.is_file():
+        return target
+    try:
+        from huggingface_hub import HfApi, hf_hub_download
+    except ImportError as exc:
+        raise DecisionUnavailable("Making a quantized file needs huggingface_hub (it is in requirements.txt).") from exc
+    if source_file is None:
+        if offline_mode():
+            raise DecisionUnavailable(
+                f"{target.name} has not been made yet and OFFLINE=true forbids downloading {repo}. "
+                "Run once with OFFLINE=false."
+            )
+        ggufs = [
+            name for name in HfApi().list_repo_files(repo)
+            if name.lower().endswith(".gguf") and not Path(name).name.lower().startswith("mmproj")
+        ]
+        source_file = next((name for needle in ("bf16", "f16", "f32") for name in ggufs if needle in name.lower()), None)
+        if source_file is None:
+            raise DecisionUnavailable(f"{repo} has no BF16/F16 GGUF file to quantize from. Found: {', '.join(ggufs) or 'none'}.")
+    log(f"downloading {repo}/{source_file}")
+    source = hf_hub_download(repo, source_file, local_files_only=offline_mode())
+    target.parent.mkdir(parents=True, exist_ok=True)
+    partial = target.with_suffix(".partial")
+    command = [quantizer, source, str(partial), quant] + ([str(threads)] if threads else [])
+    log("running " + " ".join(command))
+    result = subprocess.run(  # noqa: S603 - the quantizer was found next to llama-server or on PATH
+        command, capture_output=True, text=True, check=False, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+    )
+    if result.returncode != 0 or not partial.is_file():
+        partial.unlink(missing_ok=True)
+        tail = " | ".join(((result.stderr or "") + (result.stdout or "")).strip().splitlines()[-4:])
+        raise DecisionUnavailable(f"llama-quantize failed (exit {result.returncode}) making {target.name}: {tail}")
+    partial.replace(target)
+    return target
 
 
 def _free_port() -> int:
@@ -331,7 +441,8 @@ class LlamaCppAdapter(HttpAdapter):
     use on a free loopback port, restarted if it dies, and stopped when LocalDeploy exits.
 
     ``model_id`` is a path to a ``.gguf`` file, or ``repo:quant`` for llama.cpp to fetch from Hugging Face
-    (for example ``ggml-org/vllm-d3-lite-GGUF:Q8_0``).
+    (for example ``ggml-org/vllm-d3-lite-GGUF:Q8_0``). With ``"quantize": "Q4_K_M"`` and a repository as
+    ``model_id``, LocalDeploy makes that smaller file once from the repository's BF16 file and uses it.
     """
 
     send_model = False
@@ -340,22 +451,34 @@ class LlamaCppAdapter(HttpAdapter):
         super().__init__(profile_name, profile)
         self.process: Optional[subprocess.Popen] = None
         self.log_path: Optional[Path] = None
+        self.server_path: Optional[str] = None
         atexit.register(self.stop)
 
     def _server(self) -> str:
         configured = str(self.profile.get("server_path") or os.getenv("LLAMACPP_SERVER_PATH") or "").strip()
-        found = configured if configured and Path(configured).is_file() else shutil.which(configured or "llama-server")
+        found = find_llama_server(configured)
         if not found:
+            where = f"{configured} was not found. " if configured else ""
             raise DecisionUnavailable(
-                f"Profile '{self.profile_name}' needs llama.cpp's llama-server. Download a release from "
-                "https://github.com/ggml-org/llama.cpp/releases (b11976 or newer: it serves /v1/systemone), then set "
-                "LLAMACPP_SERVER_PATH or this profile's \"server_path\" to llama-server."
+                f"Profile '{self.profile_name}' needs llama.cpp's llama-server (b{LLAMACPP_TESTED_BUILD} or newer: it "
+                f"serves /v1/systemone). {where}{LLAMACPP_GET}"
             )
+        self.server_path = found
         return found
+
+    def _model(self, server: str) -> str:
+        model = str(self.profile.get("model_id") or "").strip()
+        quant = str(self.profile.get("quantize") or "").strip()
+        if not model or not quant or Path(model).suffix.lower() == ".gguf":
+            return model
+        quantizer = find_llama_quantize(server)
+        if not quantizer:
+            raise DecisionUnavailable(f"Profile '{self.profile_name}' asks for {quant} but llama-quantize was not found. {LLAMACPP_GET}")
+        return str(quantized_gguf(model, quant, app_home() / "models" / "decision", quantizer=quantizer))
 
     def _command(self, server: str, port: int) -> List[str]:
         profile = self.profile
-        model = str(profile.get("model_id") or "").strip()
+        model = self._model(server)
         if not model:
             raise DecisionUnavailable(f"Profile '{self.profile_name}' needs a model_id (a .gguf path or repo:quant).")
         batch = str(int(profile.get("batch") or 4096))  # a question is read in one batch, so it must hold the whole prompt
@@ -421,6 +544,16 @@ class LlamaCppAdapter(HttpAdapter):
             self.load()  # it died since the last request (or was stopped): start it again
         return super().decide(state, questions)
 
+    def _http_error(self, response: requests.Response) -> BackendCallError:
+        if response.status_code == 404:
+            # An older llama.cpp starts and loads the model fine but has no /v1/systemone.
+            build = llama_server_build(self.server_path) if self.server_path else None
+            return DecisionUnavailable(
+                f"This llama-server{f' (build {build})' if build else ''} does not serve /v1/systemone. Decision models "
+                f"need a newer llama.cpp (b{LLAMACPP_TESTED_BUILD} was tested). {LLAMACPP_GET}"
+            )
+        return super()._http_error(response)
+
     def _log_tail(self, lines: int = 6) -> str:
         try:
             text = self.log_path.read_text(encoding="utf-8", errors="replace") if self.log_path else ""
@@ -463,7 +596,10 @@ _adapters: Dict[Tuple[str, str], _Adapter] = {}
 
 
 def _fingerprint(profile: Dict[str, Any]) -> str:
-    keys = ("adapter", "model_id", "revision", "device", "dtype", "checkpoint", "base_url", "threads", "server_path", "context", "batch", "port")
+    keys = (
+        "adapter", "model_id", "revision", "device", "dtype", "checkpoint", "base_url", "threads", "server_path", "context",
+        "batch", "port", "quantize",
+    )
     return "|".join(str(profile.get(key)) for key in keys)
 
 

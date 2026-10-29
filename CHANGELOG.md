@@ -11,7 +11,9 @@ All notable changes to this project should be documented here.
   code) and answered in 0.6 to 0.7 s on a CPU with the vLLM Semantic Router `d3-lite` model; adapters for LiquidAI d1
   and Laya (PyTorch, optional packages) and a loopback forwarder for any other `/v1/systemone` server are included.
   Profiles are off by default. `docs/MODELS.md` compares 18 model and quantization choices on CPU and GPU on a routing
-  task, `scripts/decision_bench.py` reproduces it, and `scripts/make_decision_gguf.py` makes a faster Q4_K_M file.
+  task, `scripts/decision_bench.py` reproduces it, and a profile's `"quantize": "Q4_K_M"` makes the faster file on
+  first use (`scripts/make_decision_gguf.py` does it ahead of time). `llama-server` is found on `PATH`, in a WinGet
+  install or at `LLAMACPP_SERVER_PATH`, and one too old to serve `/v1/systemone` is named with its build number.
   See "Decision models" in `docs/API_OPTIONS.md`.
 - The launcher now notices a `.venv` whose Python no longer runs (for example one built from a removed Anaconda) and
   rebuilds it, keeping the broken one under `.setup`. It used to check only that `python.exe` existed, so the server

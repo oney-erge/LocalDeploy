@@ -474,9 +474,10 @@
       "batch": 4096,
       "server_path": null,
       "startup_timeout_seconds": 180,
-      "model_id": "ggml-org/vllm-d3-lite-GGUF:Q8_0",
+      "model_id": "ggml-org/vllm-d3-lite-GGUF",
+      "quantize": "Q4_K_M",
       "description": "vLLM Semantic Router d3-lite (0.85B, Apache-2.0) in llama.cpp. The recommended CPU decision model.",
-      "notes": "Needs llama-server (b11976 or newer): set LLAMACPP_SERVER_PATH or server_path. Q8_0 downloads on first use; for about 1.8x the speed at the same accuracy make Q4_K_M with scripts/make_decision_gguf.py ggml-org/vllm-d3-lite-GGUF and point model_id at the file."
+      "notes": "Needs llama.cpp b11976 or newer (winget install ggml.llamacpp, brew install llama.cpp, or a release); LocalDeploy finds llama-server on PATH, in a WinGet install, or at LLAMACPP_SERVER_PATH. First use downloads the BF16 file (about 1.7 GB) and makes a Q4_K_M file once (about 0.5 GB), which answered in about 0.5 s on 8 CPU threads. To skip that step use model_id ggml-org/vllm-d3-lite-GGUF:Q8_0 without quantize (about 1.8x slower)."
     },
     "d3_nano_decision": {
       "name": "d3_nano_decision",
@@ -493,9 +494,10 @@
       "batch": 4096,
       "server_path": null,
       "startup_timeout_seconds": 180,
-      "model_id": "ggml-org/vllm-d3-nano-GGUF:Q8_0",
-      "description": "vLLM Semantic Router d3-nano (2.2B, Apache-2.0) in llama.cpp. Slightly more accurate and steady than d3-lite, about 2x slower.",
-      "notes": "Make a Q4_K_M file with scripts/make_decision_gguf.py ggml-org/vllm-d3-nano-GGUF to reach about 2.3 s on a CPU (Q8_0 takes about 5 s)."
+      "model_id": "ggml-org/vllm-d3-nano-GGUF",
+      "quantize": "Q4_K_M",
+      "description": "vLLM Semantic Router d3-nano (2.2B, Apache-2.0) in llama.cpp. As accurate as d3-lite, steadier on follow-up messages, about 4x slower.",
+      "notes": "First use downloads the BF16 file (about 4.4 GB) and makes a Q4_K_M file once, which answered in about 2 s on 8 CPU threads (Q8_0, without quantize, takes about 5 s)."
     },
     "d3_mini_decision": {
       "name": "d3_mini_decision",

@@ -114,14 +114,20 @@ License v1.0). Models load on first use, which the response reports as `load_ms`
 `config.example.json` are the starting point, and [Models](MODELS.md#decision-models) compares them.
 
 **On a CPU, use the `llamacpp` adapter.** It starts a `llama-server` for a GGUF file, needs no Python packages, runs no
-model code, and was the fastest option in the comparison. Download a llama.cpp release (b11976 or newer, which serves
-`/v1/systemone`), then set `LLAMACPP_SERVER_PATH` (or the profile's `server_path`) to its `llama-server`:
+model code, and was the fastest option in the comparison. It needs llama.cpp b11976 or newer (it serves
+`/v1/systemone`; an older `llama-server` is reported with its build number):
 
 ```bash
-# the published Q8_0 file downloads on first use (profile d3_lite_decision), or make a faster Q4_K_M file once:
-python scripts/make_decision_gguf.py ggml-org/vllm-d3-lite-GGUF --quant Q4_K_M
-# then set the profile's model_id to the file it prints, and "enabled": true
+winget install ggml.llamacpp      # Windows (or: winget upgrade ggml.llamacpp)
+brew install llama.cpp            # macOS
+# or download a release from https://github.com/ggml-org/llama.cpp/releases and set LLAMACPP_SERVER_PATH
 ```
+
+LocalDeploy finds `llama-server` at the profile's `server_path`, at `LLAMACPP_SERVER_PATH`, on `PATH`, or in a WinGet
+install. Then set `"enabled": true` on `d3_lite_decision`. Its `"quantize": "Q4_K_M"` makes LocalDeploy download the
+model's BF16 file once and turn it into a Q4_K_M file with `llama-quantize` (shipped next to `llama-server`), kept in
+LocalDeploy's `models/decision` folder; on a CPU that file answers about 1.8 times faster than the published Q8_0 at the
+same accuracy. The first request waits for this (about a minute); `scripts/make_decision_gguf.py` does it ahead of time.
 
 The PyTorch adapters (`d1`, `laya`) need optional packages instead
 (`python -m pip install -r requirements-decision.txt`, or `pip install "localdeploy[decision]"`). On Windows the default
@@ -131,7 +137,7 @@ require `"trust_remote_code": true` and a pinned `"revision"`; the shipped profi
 
 | `adapter` | Runs | Notes |
 |---|---|---|
-| `llamacpp` | A GGUF decision model in a `llama-server` that LocalDeploy starts, on a free loopback port, restarts if it dies and stops on exit | `model_id` is a `.gguf` path or `repo:quant`; `device` `cpu`, `cuda` or `auto`; `threads`, `context`, `batch`, `server_path`, `port` |
+| `llamacpp` | A GGUF decision model in a `llama-server` that LocalDeploy starts, on a free loopback port, restarts if it dies and stops on exit | `model_id` is a `.gguf` path, `repo:quant`, or a repository with `quantize`; `device` `cpu`, `cuda` or `auto`; `threads`, `context`, `batch`, `server_path`, `port` |
 | `d1` | LiquidAI d1 (`d1-omni-600M`, `d1-3B`) in this process through PyTorch | `device`: `auto`, `cpu` or `cuda`; `dtype` as the model card advises |
 | `laya` | Laya checkpoints (`english`, `multilingual`, `typed-decisions`) in this process | Apache-2.0; `checkpoint` picks one |
 | `systemone-http` | Forwards to another server on this machine that already speaks `/v1/systemone` | Loopback `base_url` only; no extra packages |
