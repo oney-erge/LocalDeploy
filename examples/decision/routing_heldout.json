@@ -1,0 +1,473 @@
+{
+ "name": "routing-heldout-v1",
+ "description": "Held-out routing set: the messages of YBM's end-to-end test catalogue (e2e/all_cases.json), written for other tests before the decision-model work. Labels follow fixed rules: the routes of the tools each case requires (any of them counts as right; the first is `route`), hand labels for the four cases that require no tool. Placeholders are filled with made-up paths. No real user data.",
+ "route_question": {
+  "type": "choice",
+  "instructions": "A user sent this message to a bot that does things on their own Windows computer. Which route should handle it? Pick conversation for greetings, thanks, questions about the bot itself, and general-knowledge questions that need nothing from this computer. Pick status only for questions about the bot's own running tasks or queue. Anything that has to look at, change, open, send, schedule or build something on this computer or the web belongs to one of the other routes.",
+  "criteria": {
+   "conversation": "pure chat, greeting, thanks, a question about the bot's abilities, or a general-knowledge question that needs nothing from this computer",
+   "status": "a question about the bot's own running tasks, queue or progress",
+   "desktop.observe": "look at the screen or desktop as a picture: screenshot, what is open, what window is in front",
+   "computer.use": "do something in a desktop app: open an app, click, type, press keys, close a window",
+   "browser.open": "open a website or Chrome, search the web, summarize pages, research across pages, screenshot a page",
+   "browser.control": "act inside a web page: log in, click buttons, fill and submit forms, scroll, extract page data",
+   "filesystem.manage": "inspect, search, read, write, create, rename, move, delete or organize files and folders",
+   "document.manage": "read or summarize a PDF, or create or revise a presentation or document",
+   "artifact.deliver": "send an existing file or screenshot back to the user's chat",
+   "code.interpreter": "write and run a small script for a calculation, a data transform or a chart",
+   "coding.agent": "hand a coding job to Codex or GitHub Copilot, only when the user names one of them",
+   "schedule.manage": "create, list, pause, resume, delete or run recurring or timed jobs and reminders",
+   "adapter.factory": "build a new tool or integration the bot does not have yet",
+   "workspace.manage": "prepare a project workspace, materialize files, launch a local preview",
+   "configuration": "change model profiles, access modes or runtime settings"
+  }
+ },
+ "skipped_cases": [
+  {
+   "case": "mcp_call_fake_echo",
+   "reason": "no route in the set covers MCP tools"
+  }
+ ],
+ "items": [
+  {
+   "text": "Inspect the folder C:\\Users\\alex\\Documents\\Projects and tell me what files and subfolders are inside.",
+   "route": "filesystem.manage",
+   "routes": [
+    "filesystem.manage"
+   ],
+   "case": "folder_open_inspection",
+   "field": "message",
+   "rule": "routes of the required tools: filesystem.manage:inspect_folder"
+  },
+  {
+   "text": "Open the folder named Downloads and tell me what files are inside.",
+   "route": "filesystem.manage",
+   "routes": [
+    "filesystem.manage"
+   ],
+   "case": "folder_open_inspection",
+   "field": "small_test",
+   "rule": "routes of the required tools: filesystem.manage:inspect_folder"
+  },
+  {
+   "text": "Open the folder on my desktop that looks most relevant to invoices, inspect what is inside, and tell me what kind of files it contains.",
+   "route": "filesystem.manage",
+   "routes": [
+    "filesystem.manage"
+   ],
+   "case": "folder_open_inspection",
+   "field": "larger_test",
+   "rule": "routes of the required tools: filesystem.manage:inspect_folder"
+  },
+  {
+   "text": "Find a .txt file on my Desktop and read me its contents",
+   "route": "filesystem.manage",
+   "routes": [
+    "filesystem.manage"
+   ],
+   "case": "file_find_and_read",
+   "field": "message",
+   "rule": "routes of the required tools: filesystem.manage:search, filesystem.manage:read_file"
+  },
+  {
+   "text": "Clean up C:\\Users\\alex\\Documents\\Projects, organize what is safe to move, but do not delete or overwrite anything unless I explicitly approve it.",
+   "route": "filesystem.manage",
+   "routes": [
+    "filesystem.manage"
+   ],
+   "case": "safe_file_operations",
+   "field": "message",
+   "rule": "routes of the required tools: filesystem.manage:organize_plan, filesystem.manage:apply_manifest"
+  },
+  {
+   "text": "Clean up this folder.",
+   "route": "filesystem.manage",
+   "routes": [
+    "filesystem.manage"
+   ],
+   "case": "safe_file_operations",
+   "field": "small_test",
+   "rule": "routes of the required tools: filesystem.manage:organize_plan, filesystem.manage:apply_manifest"
+  },
+  {
+   "text": "Organize this folder, remove duplicates if any, and delete unnecessary files.",
+   "route": "filesystem.manage",
+   "routes": [
+    "filesystem.manage"
+   ],
+   "case": "safe_file_operations",
+   "field": "larger_test",
+   "rule": "routes of the required tools: filesystem.manage:organize_plan, filesystem.manage:apply_manifest"
+  },
+  {
+   "text": "Open the desktop folder C:\\Users\\alex\\Desktop\\Reports, find the PDF inside it, and tell me what the PDF is about.",
+   "route": "document.manage",
+   "routes": [
+    "document.manage"
+   ],
+   "case": "pdf_open_summary",
+   "field": "message",
+   "rule": "routes of the required tools: document.manage:summarize_pdf"
+  },
+  {
+   "text": "Open this PDF and tell me what it is about.",
+   "route": "document.manage",
+   "routes": [
+    "document.manage"
+   ],
+   "case": "pdf_open_summary",
+   "field": "small_test",
+   "rule": "routes of the required tools: document.manage:summarize_pdf"
+  },
+  {
+   "text": "Open one of the folders on my desktop, find a PDF inside it, open it, and explain what the PDF is about.",
+   "route": "document.manage",
+   "routes": [
+    "document.manage"
+   ],
+   "case": "pdf_open_summary",
+   "field": "larger_test",
+   "rule": "routes of the required tools: document.manage:summarize_pdf"
+  },
+  {
+   "text": "Open the browser, go to http://127.0.0.1:8765/index.html, wait for it to load, tell me what page opened, and send me a screenshot.",
+   "route": "browser.open",
+   "routes": [
+    "browser.open",
+    "artifact.deliver"
+   ],
+   "case": "browser_open_navigation",
+   "field": "message",
+   "rule": "routes of the required tools: browser.open:screenshot, artifact.deliver:send_screenshot"
+  },
+  {
+   "text": "Open the browser and go to example.com.",
+   "route": "browser.open",
+   "routes": [
+    "browser.open",
+    "artifact.deliver"
+   ],
+   "case": "browser_open_navigation",
+   "field": "small_test",
+   "rule": "routes of the required tools: browser.open:screenshot, artifact.deliver:send_screenshot"
+  },
+  {
+   "text": "Open the browser, go to this website, wait for the page to load, tell me what page opened, and send me a screenshot.",
+   "route": "browser.open",
+   "routes": [
+    "browser.open",
+    "artifact.deliver"
+   ],
+   "case": "browser_open_navigation",
+   "field": "larger_test",
+   "rule": "routes of the required tools: browser.open:screenshot, artifact.deliver:send_screenshot"
+  },
+  {
+   "text": "Tell me what is visible on my desktop screen right now.",
+   "route": "desktop.observe",
+   "routes": [
+    "desktop.observe",
+    "computer.use"
+   ],
+   "case": "desktop_inspection",
+   "field": "message",
+   "rule": "routes of the required tools: computer.use:observe"
+  },
+  {
+   "text": "Look at my desktop, identify the visible files, folders, apps, and open windows, and summarize what you see.",
+   "route": "desktop.observe",
+   "routes": [
+    "desktop.observe",
+    "computer.use"
+   ],
+   "case": "desktop_inspection",
+   "field": "larger_test",
+   "rule": "routes of the required tools: computer.use:observe"
+  },
+  {
+   "text": "Use the local code interpreter to create a file named interpreter-report.txt with a two-line summary of this test, run the script, and tell me where the file is.",
+   "route": "code.interpreter",
+   "routes": [
+    "code.interpreter"
+   ],
+   "case": "code_interpreter_generate_file",
+   "field": "message",
+   "rule": "routes of the required tools: code.interpreter:generate_and_run"
+  },
+  {
+   "text": "Use the local code interpreter to create a small report file.",
+   "route": "code.interpreter",
+   "routes": [
+    "code.interpreter"
+   ],
+   "case": "code_interpreter_generate_file",
+   "field": "small_test",
+   "rule": "routes of the required tools: code.interpreter:generate_and_run"
+  },
+  {
+   "text": "Send me the PDF file at C:\\Users\\alex\\Desktop\\Reports\\summary.pdf.",
+   "route": "artifact.deliver",
+   "routes": [
+    "artifact.deliver"
+   ],
+   "case": "send_found_pdf",
+   "field": "message",
+   "rule": "routes of the required tools: artifact.deliver:send_file"
+  },
+  {
+   "text": "Send me that PDF file.",
+   "route": "artifact.deliver",
+   "routes": [
+    "artifact.deliver"
+   ],
+   "case": "send_found_pdf",
+   "field": "small_test",
+   "rule": "routes of the required tools: artifact.deliver:send_file"
+  },
+  {
+   "text": "Find the PDF we just discussed, attach it or export it, and send it back to me.",
+   "route": "artifact.deliver",
+   "routes": [
+    "artifact.deliver"
+   ],
+   "case": "send_found_pdf",
+   "field": "larger_test",
+   "rule": "routes of the required tools: artifact.deliver:send_file"
+  },
+  {
+   "text": "Create a job that runs every day and checks http://127.0.0.1:8765/episode.html for a new episode, then sends me the summary.",
+   "route": "schedule.manage",
+   "routes": [
+    "schedule.manage"
+   ],
+   "case": "scheduled_jobs",
+   "field": "message",
+   "rule": "routes of the required tools: schedule.manage:create"
+  },
+  {
+   "text": "Create a job that runs every day and checks this website.",
+   "route": "schedule.manage",
+   "routes": [
+    "schedule.manage"
+   ],
+   "case": "scheduled_jobs",
+   "field": "small_test",
+   "rule": "routes of the required tools: schedule.manage:create"
+  },
+  {
+   "text": "Set up a scheduled job that runs every morning, searches the internet for this topic, summarizes new results, and sends me the summary.",
+   "route": "schedule.manage",
+   "routes": [
+    "schedule.manage"
+   ],
+   "case": "scheduled_jobs",
+   "field": "larger_test",
+   "rule": "routes of the required tools: schedule.manage:create"
+  },
+  {
+   "text": "Create an adapter for the Yahoo Finance stock data API that can fetch the latest price, daily change, and basic quote information for a given ticker symbol. Put it in the adapter cache and do not load it automatically.",
+   "route": "adapter.factory",
+   "routes": [
+    "adapter.factory"
+   ],
+   "case": "general_adapter_creation",
+   "field": "message",
+   "rule": "routes of the required tools: adapter.factory:scaffold, code review/checker"
+  },
+  {
+   "text": "Create an adapter for the Yahoo Finance stock data API that can fetch the latest price, daily change, and basic quote information for a given ticker symbol.",
+   "route": "adapter.factory",
+   "routes": [
+    "adapter.factory"
+   ],
+   "case": "general_adapter_creation",
+   "field": "small_test",
+   "rule": "routes of the required tools: adapter.factory:scaffold, code review/checker"
+  },
+  {
+   "text": "I need an adapter that lets the orchestrator interact with VS Code, send prompts to Codex, read Codex output, detect file changes, and report progress.",
+   "route": "adapter.factory",
+   "routes": [
+    "adapter.factory"
+   ],
+   "case": "general_adapter_creation",
+   "field": "larger_test",
+   "rule": "routes of the required tools: adapter.factory:scaffold, code review/checker"
+  },
+  {
+   "text": "Act as a persistent local assistant. Somewhere under C:\\Users\\alex\\Documents\\handoffs is the live handoff text file whose contents contain ORBIT-GLASS-27. Find it by evidence rather than guessing from filenames, read the full file so you can report the final recovery instruction, then send that exact file back to me. If one approach fails, try another, and keep me updated while you work.",
+   "route": "filesystem.manage",
+   "routes": [
+    "filesystem.manage",
+    "artifact.deliver"
+   ],
+   "case": "autonomy_buried_file_pursuit",
+   "field": "message",
+   "rule": "routes of the required tools: filesystem.manage:search, filesystem.manage:read_file, artifact.deliver:send_file"
+  },
+  {
+   "text": "My note says the career master file is at C:\\Users\\alex\\Documents\\career\\master.md. Read it and tell me its marker. If that exact location no longer works, do not give up or ask me to restart: search under C:\\Users\\alex\\Documents\\career for the renamed career master file, read the recovered file, and explain what failed and how you recovered.",
+   "route": "filesystem.manage",
+   "routes": [
+    "filesystem.manage"
+   ],
+   "case": "autonomy_stale_path_recovery",
+   "field": "message",
+   "rule": "routes of the required tools: filesystem.manage:read_file, filesystem.manage:search"
+  },
+  {
+   "text": "First inspect every career-evidence file under C:\\Users\\alex\\Documents\\career. Write a grounded LinkedIn improvement brief to C:\\Users\\alex\\Documents\\career\\linkedin-improvement-brief.md with a proposed headline, About section, skills, evidence gaps, and no inflated claims, then send me that exact file. Only after the file is delivered, create a weekly schedule whose objective is 'Review my career evidence and propose one evidence-backed LinkedIn improvement', and ask for approval when required. Keep me updated throughout.",
+   "route": "filesystem.manage",
+   "routes": [
+    "filesystem.manage",
+    "artifact.deliver",
+    "schedule.manage"
+   ],
+   "case": "autonomy_career_brief_and_weekly_loop",
+   "field": "message",
+   "rule": "routes of the required tools: filesystem.manage:inspect_folder, filesystem.manage:read_file, filesystem.manage:write_text_file, artifact.deliver:send_file, schedule.manage:create"
+  },
+  {
+   "text": "YBM has no registered tool for comparing a local career evidence pack with a LinkedIn profile export. Create a reusable adapter proposal named linkedin_evidence_compare with a generic input contract for two local paths, comparison output, manifest, and tests. Put it only in the adapter cache; do not execute, import, promote, or activate generated code. Tell me exactly what review is still required.",
+   "route": "adapter.factory",
+   "routes": [
+    "adapter.factory"
+   ],
+   "case": "autonomy_missing_capability_bootstrap",
+   "field": "message",
+   "rule": "routes of the required tools: adapter.factory:scaffold"
+  },
+  {
+   "text": "Use Claude Code in C:\\Users\\alex\\ybm-workspaces\\dog-app to build a polished small web app about dogs. Prefer the newest available Sonnet model, but do not invent a Sonnet 5 result if that model or the Claude CLI is unavailable. Keep the workspace and session resumable, give me an update at least every five minutes while it runs, and report the exact availability, quota, or build result.",
+   "route": "coding.agent",
+   "routes": [
+    "coding.agent"
+   ],
+   "case": "autonomy_claude_dog_app_progress",
+   "field": "message",
+   "rule": "routes of the required tools: coding.agent"
+  },
+  {
+   "text": "Use Codex in C:\\Users\\alex\\ybm-workspaces\\dog-app to start a small accessible dog-adoption web app. If the Codex usage limit is reached, preserve the current workspace and session instead of restarting or discarding work, stop hot-looping, and tell me the exact continuation state. Keep me updated at least every five minutes until completed or safely paused.",
+   "route": "coding.agent",
+   "routes": [
+    "coding.agent"
+   ],
+   "case": "autonomy_codex_quota_continuation",
+   "field": "message",
+   "rule": "routes of the required tools: coding.agent"
+  },
+  {
+   "text": "Find the official Codex desktop application download for this Windows computer and prepare the correct installation. Do not use an unofficial mirror and do not claim it is installed merely because a page opened or a file downloaded. Stop for the real approval required before executing an installer or changing the host, and tell me exactly what would run and how you will verify success.",
+   "route": "browser.open",
+   "routes": [
+    "browser.open"
+   ],
+   "case": "autonomy_desktop_install_guardrail",
+   "field": "message",
+   "rule": "routes of the required tools: browser.open"
+  },
+  {
+   "text": "Remember this for the future: whenever you summarize any document for me, answer with exactly three bullet points and finish with a final line that starts with 'Confidence:'.",
+   "route": "conversation",
+   "routes": [
+    "conversation"
+   ],
+   "case": "evolution_preference_learned_and_applied",
+   "field": "message",
+   "rule": "hand label: the case expects no task: a preference taught through chat"
+  },
+  {
+   "text": "Read C:\\Users\\alex\\Documents\\config\\service.yaml and tell me what this service is called, its region, its retry limit, and its timeout. Do not reveal any credential value in your answer.",
+   "route": "filesystem.manage",
+   "routes": [
+    "filesystem.manage"
+   ],
+   "case": "evolution_secret_never_echoed",
+   "field": "message",
+   "rule": "routes of the required tools: filesystem.manage:read_file"
+  },
+  {
+   "text": "Rewrite C:\\Users\\alex\\Documents\\policies\\retention-policy.md so the audit retention line says 30 days instead of 400 days. Ask me before changing anything on disk.",
+   "route": "filesystem.manage",
+   "routes": [
+    "filesystem.manage"
+   ],
+   "case": "evolution_refusal_is_honored",
+   "field": "message",
+   "rule": "hand label: an in-place file rewrite that must stop at approval"
+  },
+  {
+   "text": "Do two things in one go: first, tell me which SKU has the biggest stock difference between the two CSV files in C:\\Users\\alex\\Documents\\inventory; second, write a file in that same folder called restock-note.md naming that SKU and both of its counts. Then confirm both parts are done.",
+   "route": "filesystem.manage",
+   "routes": [
+    "filesystem.manage"
+   ],
+   "case": "evolution_two_goals_one_message",
+   "field": "message",
+   "rule": "routes of the required tools: filesystem.manage:read_file, filesystem.manage:write_text_file"
+  },
+  {
+   "text": "Send a fax of C:\\Users\\alex\\Documents\\reports\\quarterly-ops-report.md to +1-555-0100 and give me the fax confirmation number.",
+   "route": "adapter.factory",
+   "routes": [
+    "adapter.factory",
+    "conversation"
+   ],
+   "case": "evolution_admits_capability_gap",
+   "field": "message",
+   "rule": "hand label: no tool can fax: saying so (chat) or proposing the capability are both right"
+  },
+  {
+   "text": "In C:\\Users\\alex\\ybm-workspaces\\vscode-plugin, scaffold a minimal VS Code extension called ybm-dog-facts: a package.json that contributes one command, an extension.js that registers it, and a README. Create the real files. Do not tell me it is installed or published - only that it is scaffolded, and list exactly what you created.",
+   "route": "filesystem.manage",
+   "routes": [
+    "filesystem.manage"
+   ],
+   "case": "evolution_vscode_plugin_scaffold",
+   "field": "message",
+   "rule": "routes of the required tools: filesystem.manage:write_text_file"
+  },
+  {
+   "text": "My Codex quota is exhausted for the next 5 hours. Set things up so my dog-adoption web app work resumes automatically once the quota is back: create a schedule whose objective is 'Resume the Codex dog-adoption web app build', tell me when it will next run, and do not sit in a retry loop in the meantime.",
+   "route": "schedule.manage",
+   "routes": [
+    "schedule.manage"
+   ],
+   "case": "evolution_quota_wait_is_scheduled_not_spun",
+   "field": "message",
+   "rule": "routes of the required tools: schedule.manage:create"
+  },
+  {
+   "text": "Read C:\\Users\\alex\\Documents\\config/does-not-exist.md and tell me its three main points. If it is not there, say so plainly and tell me what is actually in that folder instead - do not invent contents.",
+   "route": "filesystem.manage",
+   "routes": [
+    "filesystem.manage",
+    "document.manage"
+   ],
+   "case": "evolution_missing_source_not_invented",
+   "field": "message",
+   "rule": "hand label: read a named file, then list its folder"
+  },
+  {
+   "text": "Hey, could you get Claude Code to make me a tiny VS Code add-on called ybm-claude-dog-helper? Keep it plain JavaScript with no packages to install. I want one command named ybmClaudeDog.showTip; running it should pop up a useful dog-care tip. Please make package.json, extension.js, and a short README for real in a safe YBM workspace. Don't install or publish it. When Claude is finished, tell me where the files actually are and what it managed to verify.",
+   "route": "coding.agent",
+   "routes": [
+    "coding.agent"
+   ],
+   "case": "human_claude_vscode_dog_helper",
+   "field": "message",
+   "rule": "routes of the required tools: coding.agent"
+  },
+  {
+   "text": "Can you ask Codex to put together a little VS Code extension for me? Call it ybm-codex-dog-name. I don't need anything fancy or installed: just package.json, src/extension.js, and README.md, all plain JavaScript. Its ybmCodexDog.copyName command should choose a friendly dog name, copy it to the clipboard, and show me which name it picked. Let Codex do the work, keep me posted if it takes a while, then give me the real folder and an honest rundown of what exists.",
+   "route": "coding.agent",
+   "routes": [
+    "coding.agent"
+   ],
+   "case": "human_codex_vscode_dog_name",
+   "field": "message",
+   "rule": "routes of the required tools: coding.agent"
+  }
+ ]
+}

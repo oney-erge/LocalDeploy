@@ -4,9 +4,10 @@
     python scripts/decision_bench.py --url http://127.0.0.1:8000 --profile d1_3b_decision --out reports/decision.json
 
 For each message it asks one choice question ("which route?") at POST /v1/systemone and
-reports accuracy, the two mistakes that matter to a bot (a real task answered as chat, and
-chat turned into a task), whether the confidences can be trusted, how many messages a
-confidence cut-off would settle without a language model, and latency.
+reports accuracy with a 95% interval, the two mistakes that matter to a bot (a real task
+answered as chat, and chat turned into a task), whether the confidences can be trusted, how
+many messages a confidence cut-off would settle without a language model, and latency.
+An item may list several acceptable routes in ``routes``; any of them counts as right.
 Standard library plus ``requests`` only.
 """
 
@@ -14,6 +15,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import statistics
 import sys
 import time
@@ -84,6 +86,28 @@ def coverage_at(pairs: List[tuple], target: float) -> Dict[str, Any]:
     return best
 
 
+def wilson(successes: int, total: int, z: float = 1.96) -> List[float]:
+    """95% confidence interval for a proportion (Wilson score), which stays sensible near 0% and 100%."""
+    if not total:
+        return [0.0, 0.0]
+    p = successes / total
+    centre = (p + z * z / (2 * total)) / (1 + z * z / total)
+    half = z * math.sqrt(p * (1 - p) / total + z * z / (4 * total * total)) / (1 + z * z / total)
+    return [max(0.0, centre - half), min(1.0, centre + half)]
+
+
+def accepted_routes(item: Dict[str, Any]) -> List[str]:
+    return list(item.get("routes") or [item["route"]])
+
+
+def chat_vs_task_ok(accepted: List[str], choice: str) -> bool:
+    if accepted == [CHAT_ROUTE]:
+        return choice == CHAT_ROUTE
+    if CHAT_ROUTE not in accepted:
+        return choice != CHAT_ROUTE
+    return True  # chat and a task are both acceptable
+
+
 def percentile(values: List[float], q: float) -> float:
     ordered = sorted(values)
     return ordered[min(len(ordered) - 1, int(round(q * (len(ordered) - 1))))]
@@ -99,16 +123,18 @@ def evaluate(url: str, profile: str, dataset: Dict[str, Any], warmup: int, timeo
     rows = []
     for index, item in enumerate(items, 1):
         result = ask(url, profile, item["text"], question, timeout)
-        result.update(text=item["text"], expected=item["route"], correct=result["choice"] == item["route"])
+        accepted = accepted_routes(item)
+        result.update(text=item["text"], expected=item["route"], accepted=accepted, correct=result["choice"] in accepted)
         rows.append(result)
         if index % 25 == 0:
             log(f"  {profile}: {index}/{len(items)}")
     pairs = [(r["confidence"], r["correct"]) for r in rows]
     right = [r["confidence"] for r in rows if r["correct"]]
     wrong = [r["confidence"] for r in rows if not r["correct"]]
-    dropped = [r for r in rows if r["expected"] != CHAT_ROUTE and r["choice"] == CHAT_ROUTE]
-    spurious = [r for r in rows if r["expected"] == CHAT_ROUTE and r["choice"] != CHAT_ROUTE]
-    chat_vs_task_ok = sum(1 for r in rows if (r["expected"] == CHAT_ROUTE) == (r["choice"] == CHAT_ROUTE))
+    dropped = [r for r in rows if CHAT_ROUTE not in r["accepted"] and r["choice"] == CHAT_ROUTE]
+    spurious = [r for r in rows if r["accepted"] == [CHAT_ROUTE] and r["choice"] != CHAT_ROUTE]
+    chat_vs_task_right = sum(1 for r in rows if chat_vs_task_ok(r["accepted"], r["choice"]))
+    correct = sum(r["correct"] for r in rows)
     server = [r["server_ms"] for r in rows]
     per_route: Dict[str, Dict[str, int]] = {}
     for r in rows:
@@ -119,8 +145,9 @@ def evaluate(url: str, profile: str, dataset: Dict[str, Any], warmup: int, timeo
     return {
         "profile": profile,
         "n": len(rows),
-        "accuracy": sum(r["correct"] for r in rows) / len(rows),
-        "chat_vs_task_accuracy": chat_vs_task_ok / len(rows),
+        "accuracy": correct / len(rows),
+        "accuracy_ci95": wilson(correct, len(rows)),
+        "chat_vs_task_accuracy": chat_vs_task_right / len(rows),
         "dropped_tasks": len(dropped),
         "spurious_tasks": len(spurious),
         "mean_confidence_right": statistics.mean(right) if right else None,
@@ -154,15 +181,15 @@ def evaluate_steering(url: str, profile: str, dataset: Dict[str, Any], timeout: 
 
 def markdown(results: List[Dict[str, Any]]) -> str:
     lines = [
-        "| Profile | Route acc. | Chat vs task | Dropped tasks | Spurious tasks | ECE | Settled at 95% | Median ms | p95 ms | Steering acc. |",
+        "| Profile | Route acc. (95% CI) | Chat vs task | Dropped tasks | Spurious tasks | ECE | Settled at 95% | Median ms | p95 ms | Steering acc. |",
         "|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|",
     ]
     for r in results:
         cov = r["coverage_at_95"]
         steering = r.get("steering", {}).get("accuracy")
         lines.append(
-            "| {profile} | {acc:.0%} | {cvt:.0%} | {dropped} | {spurious} | {ece:.3f} | {cov:.0%} (t>={thr}) | {med:.0f} | {p95:.0f} | {steer} |".format(
-                profile=r["profile"], acc=r["accuracy"], cvt=r["chat_vs_task_accuracy"], dropped=r["dropped_tasks"],
+            "| {profile} | {acc:.0%} ({lo:.0%}-{hi:.0%}) | {cvt:.0%} | {dropped} | {spurious} | {ece:.3f} | {cov:.0%} (t>={thr}) | {med:.0f} | {p95:.0f} | {steer} |".format(
+                profile=r["profile"], acc=r["accuracy"], lo=r["accuracy_ci95"][0], hi=r["accuracy_ci95"][1], cvt=r["chat_vs_task_accuracy"], dropped=r["dropped_tasks"],
                 spurious=r["spurious_tasks"], ece=r["ece"], cov=cov["coverage"], thr=cov["threshold"] if cov["threshold"] else "-",
                 med=r["latency_ms"]["median"], p95=r["latency_ms"]["p95"], steer=f"{steering:.0%}" if steering is not None else "-",
             )
@@ -178,19 +205,22 @@ def main() -> int:
     parser.add_argument("--warmup", type=int, default=2, help="untimed requests before measuring")
     parser.add_argument("--timeout", type=float, default=300.0)
     parser.add_argument("--limit", type=int, default=0, help="only the first N messages, and no steering set (a quick timing sample)")
+    parser.add_argument("--label", help="a name for this run, stored in the report (for example run-2)")
     parser.add_argument("--out", help="write the full JSON report here")
     args = parser.parse_args()
 
     dataset = json.loads(Path(args.dataset).read_text(encoding="utf-8"))
     log = lambda message: print(message, file=sys.stderr, flush=True)  # noqa: E731
+    started = time.strftime("%Y-%m-%dT%H:%M:%S%z")
     results = []
     for profile in args.profile:
         log(f"{profile}: warming up")
         try:
             result = evaluate(args.url.rstrip("/"), profile, dataset, args.warmup, args.timeout, log, args.limit)
-            result["steering"] = (
-                {"n": 0, "accuracy": 0.0, "misses": []} if args.limit else evaluate_steering(args.url.rstrip("/"), profile, dataset, args.timeout)
-            )
+            if args.limit or "steering_question" not in dataset:
+                result["steering"] = {"n": 0, "accuracy": None, "misses": []}
+            else:
+                result["steering"] = evaluate_steering(args.url.rstrip("/"), profile, dataset, args.timeout)
         except (RuntimeError, requests.RequestException) as exc:
             log(f"{profile}: FAILED - {exc}")
             results.append({"profile": profile, "error": str(exc)})
@@ -201,7 +231,8 @@ def main() -> int:
         print(markdown(scored))
     if args.out:
         Path(args.out).parent.mkdir(parents=True, exist_ok=True)
-        Path(args.out).write_text(json.dumps({"dataset": dataset["name"], "results": results}, indent=2), encoding="utf-8")
+        report = {"dataset": dataset["name"], "label": args.label, "started": started, "results": results}
+        Path(args.out).write_text(json.dumps(report, indent=2), encoding="utf-8")
         log(f"report written to {args.out}")
     return 0 if len(scored) == len(results) else 1
 
