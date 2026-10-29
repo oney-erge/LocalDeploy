@@ -71,3 +71,5 @@ try {
   Remove-Item -LiteralPath $scratch -Recurse -Force -ErrorAction SilentlyContinue
 }
 Write-Host "All launcher helper checks passed."
+# The probes above leave $LASTEXITCODE at 103 on purpose, and CI's PowerShell step exits with $LASTEXITCODE.
+exit 0
