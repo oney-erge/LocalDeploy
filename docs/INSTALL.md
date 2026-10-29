@@ -8,7 +8,10 @@ Each also accepts `doctor`, `repair`, `docker`, `logs`, and `stop`.
 Setup checks disk space, prevents concurrent environment changes, retries
 temporary network failures up to three times, and writes persistent failures
 to `.setup/install.log`. The `logs` action follows the active native or
-Docker logs rather than requiring Docker.
+Docker logs rather than requiring Docker. If the existing `.venv` has a Python
+that no longer starts (for example one built from an Anaconda that was later
+removed), the launcher moves it to `.setup/venv-broken-<time>` and builds a new
+one; nothing is deleted.
 
 Decision models (`/v1/systemone`) are optional and need extra packages: run
 `python -m pip install -r requirements-decision.txt` in LocalDeploy's

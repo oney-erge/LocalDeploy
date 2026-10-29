@@ -315,6 +315,10 @@ function Test-RequirementsCurrent {
     return (Get-Content -LiteralPath $marker -ErrorAction SilentlyContinue) -eq $current
 }
 
+# A .venv whose Python no longer runs would pass the existence check below and fail later with
+# "No Python at ..."; this moves it aside so the branch below builds a fresh one.
+Remove-IncompleteVenv $ProjectRoot
+
 $python = ".\.venv\Scripts\python.exe"
 if (-not (Test-Path -LiteralPath $python)) {
     if ($SkipInstall) {

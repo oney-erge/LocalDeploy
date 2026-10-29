@@ -12,6 +12,9 @@ All notable changes to this project should be documented here.
   and the packages are optional (`pip install "localdeploy[decision]"`). `docs/MODELS.md` compares the models on a
   routing task: `d1-3B` works, `d1-omni-600M` and untrained Laya do not. See "Decision models" in
   `docs/API_OPTIONS.md`.
+- The launcher now notices a `.venv` whose Python no longer runs (for example one built from a removed Anaconda) and
+  rebuilds it, keeping the broken one under `.setup`. It used to check only that `python.exe` existed, so the server
+  failed with "No Python at ..." and every repair retried the dead interpreter.
 - Guided recommendations and automated comparisons now include the requested
   context length in the estimated memory budget. The download budget is also
   respected when even the first candidate is too large.
