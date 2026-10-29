@@ -15,6 +15,9 @@ All notable changes to this project should be documented here.
   first use (`scripts/make_decision_gguf.py` does it ahead of time). `llama-server` is found on `PATH`, in a WinGet
   install or at `LLAMACPP_SERVER_PATH`, and one too old to serve `/v1/systemone` is named with its build number.
   See "Decision models" in `docs/API_OPTIONS.md`.
+- `benchmarks/decision-routing/` publishes the routing comparison: the labeled and held-out message sets, the raw result
+  of every run, the environment and model-file hashes, and `analyze.py`, which recomputes the intervals, the paired test
+  against an 8B LLM and a replay of YBM's routing modes from those files.
 - The launcher now notices a `.venv` whose Python no longer runs (for example one built from a removed Anaconda) and
   rebuilds it, keeping the broken one under `.setup`. It used to check only that `python.exe` existed, so the server
   failed with "No Python at ..." and every repair retried the dead interpreter.

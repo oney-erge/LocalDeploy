@@ -1,0 +1,17 @@
+run,model_file,device,threads,set,tag,n,route_accuracy,ci95_low,ci95_high,chat_vs_task,dropped_tasks,spurious_tasks,ece,settled_at_95,median_ms,p95_ms,steering_accuracy,server_ready_ms,first_request_ms,working_set_mb
+d13b_q4-cpu-t8-heldout_long-r1,d1-3B-Q4_K_M.gguf,cpu,8,heldout_long,r1,43,0.7209,0.5731,0.8325,1.0,0,0,0.1512,0.4884,2801,3433,,1668,2572,2949
+d13b_q4-cpu-t8-main_long-r1,d1-3B-Q4_K_M.gguf,cpu,8,main_long,r1,98,0.8265,0.7396,0.8888,0.9592,3,1,0.0182,0.551,2617,2843,0.8333,2058,2548,2949
+d3lite_q4-cpu-t8-heldout_long-r1,vllm-d3-lite-Q4_K_M.gguf,cpu,8,heldout_long,r1,43,0.8605,0.7274,0.9344,0.9767,0,1,0.0975,0.6512,1007,1133,,971,1010,1071
+d3lite_q4-cpu-t8-heldout_short-r1,vllm-d3-lite-Q4_K_M.gguf,cpu,8,heldout_short,r1,43,0.8372,0.7003,0.9188,0.9767,0,1,0.1663,0.8372,596,735,,1052,508,1044
+d3lite_q4-cpu-t8-main_short-r1,vllm-d3-lite-Q4_K_M.gguf,cpu,8,main_short,r1,98,0.9286,0.8598,0.965,0.9694,0,3,0.0715,0.949,533,591,0.75,1227,546,1043
+d3lite_q4-cpu-t8-main_short-r2,vllm-d3-lite-Q4_K_M.gguf,cpu,8,main_short,r2,98,0.9286,0.8598,0.965,0.9694,0,3,0.0715,0.949,532,600,0.75,1013,568,1044
+d3lite_q4-cpu-t8-main_short-r3,vllm-d3-lite-Q4_K_M.gguf,cpu,8,main_short,r3,98,0.9286,0.8598,0.965,0.9694,0,3,0.0715,0.949,539,597,0.75,977,526,1044
+d3mini_q4-cpu-t8-heldout_long-r1,vllm-d3-mini-Q4_K_M.gguf,cpu,8,heldout_long,r1,43,0.9302,0.8139,0.976,1.0,0,0,0.0952,0.9535,8565,10551,,3521,8148,4928
+d3mini_q4-cpu-t8-main_long-r1,vllm-d3-mini-Q4_K_M.gguf,cpu,8,main_long,r1,98,0.949,0.8861,0.978,0.9796,0,2,0.0498,0.9898,7773,9410,0.8333,5816,6646,4929
+d3nano_q4-cpu-t8-heldout_long-r1,vllm-d3-nano-Q4_K_M.gguf,cpu,8,heldout_long,r1,43,0.8605,0.7274,0.9344,0.9767,0,1,0.1162,0.7674,2177,2444,,1357,1953,2159
+d3nano_q4-cpu-t8-main_long-r1,vllm-d3-nano-Q4_K_M.gguf,cpu,8,main_long,r1,98,0.9286,0.8598,0.965,0.9694,0,3,0.0669,0.9388,2074,2169,0.9167,1734,1946,2159
+d3nano_q4-cpu-t8-main_long-r2,vllm-d3-nano-Q4_K_M.gguf,cpu,8,main_long,r2,98,0.9286,0.8598,0.965,0.9694,0,3,0.0669,0.9388,2039,2169,0.9167,1370,2077,2159
+d3lite_q4-cuda-t8-heldout_short-r1,vllm-d3-lite-Q4_K_M.gguf,cuda,8,heldout_short,r1,43,0.8837,0.7552,0.9493,0.9767,0,1,0.182,0.9302,40,55,,1227,72,1177
+d3mini_q4-cuda-t8-heldout_long-r1,vllm-d3-mini-Q4_K_M.gguf,cuda,8,heldout_long,r1,43,0.9535,0.8454,0.9872,1.0,0,0,0.1188,1.0,178,196,,2423,178,3965
+d3mini_q4-cuda-t8-main_long-r1,vllm-d3-mini-Q4_K_M.gguf,cuda,8,main_long,r1,98,0.949,0.8861,0.978,0.9694,0,3,0.0567,0.9898,171,185,0.8333,3357,201,3965
+d3mini_q4-cuda-t8-main_long-r2,vllm-d3-mini-Q4_K_M.gguf,cuda,8,main_long,r2,98,0.949,0.8861,0.978,0.9694,0,3,0.0567,0.9898,174,182,0.8333,2498,165,3965

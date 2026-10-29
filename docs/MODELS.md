@@ -86,17 +86,32 @@ VRAM includes about 1 GB the desktop was already using.
 - **A shorter prompt is the second lever, and it depends on the model.** The short wording took `d3-lite` Q4_K_M from
   1.05 s to 0.61 s and its accuracy from 92% to 93%; `d3-nano` fell from 93% to 87%, so it keeps the long wording.
 - **The 4B-class models are the most accurate and too slow for a CPU.** `d3-mini` (the "d3 4b", 4.5B) scored 95% with a
-  confident answer for 99% of messages, in 0.18 s on the GPU, but needs 4.6 s (short wording) to 8.1 s (long wording) on
-  the CPU. `Kev-4B` scored 94% but took 7.9 s on the CPU and its confidence is unreliable (ECE 0.41); `lev` scored 91% at
+  confident answer for 99% of messages, in 0.17 s on the GPU, but took 7.8 s per message on the CPU (long wording, full
+  run; about 4.6 s with the short wording on a 15-message sample). `Kev-4B` scored 94% but took 7.9 s on the CPU and its confidence is unreliable (ECE 0.41); `lev` scored 91% at
   15.7 s.
 - **Small models that do not work zero-shot on this task:** `Julia-1` (144M) 8%, `Laya` (421M) 28%, `d1-omni-600M` 56% with
   37 real tasks answered as chat, and `d3-edge` (0.59B) 78%. Laya's card says it is a base to fine-tune. `Kev-0.8B` reached
   86% but is poorly calibrated (ECE 0.37) and slower than `d3-lite`.
-- **Against a generative LLM** (qwen3-vl 8B asked the same question through YBM's classifier): the LLM scored 88% on the
-  exact route (93.5% if the `status` route, which it answers through a separate field, is left out) and `d3-lite` 93%
-  (92.4% by the same measure). On chat versus task `d3-lite` was better (95 against 90 of 98), and the LLM's confidence
-  was 0.95 to 1.00 whether it was right or wrong. When the two agree they are right 97.6% of the time, and only 3 messages
-  were wrong for both. The LLM took 15 s per message.
+- **Against a generative LLM** (qwen3-vl 8B asked the same question through YBM's classifier): the LLM scored 92% on the
+  exact route and `d3-lite` 93%, the same within the noise (each got 4 or 5 messages right that the other missed). The LLM
+  answered 2 real tasks as chat and `d3-lite` none, and the LLM's confidence was 0.95 to 1.00 whether it was right or
+  wrong. The LLM took 15 s per message. (A first scoring of the LLM run read its status answers as chat and reported 88%;
+  see the validation below.)
+
+### Validation
+
+A second round checked the leaders before relying on them; the data, scripts and full results are in
+[benchmarks/decision-routing](../benchmarks/decision-routing/README.md).
+
+- **Repeats** gave the same route for every message (d3-lite 3 runs, d3-nano and d3-mini 2), medians within 2%.
+- **Held-out messages**: 43 messages from YBM's end-to-end tests, labeled by a fixed rule before any model saw them.
+  d3-lite 84%, d3-nano 86%, d3-mini 93% (CPU) and 95% (GPU), d1-3B 72%, the LLM 88%. All of d3-lite's misses there had a
+  probability of 0.87 or less.
+- **Routing modes replayed** at a 0.9 cut-off: letting d3-lite decide what it is sure of and the LLM the rest kept the
+  LLM's accuracy on both sets while d3-lite settled 69 of 141 messages alone (2 wrongly), so the median time on the 98
+  messages fell from 15 s to 0.6 s.
+- **Costs** (d3-lite, CPU): about 1 GB of RAM and 2% of one core while loaded; first answer 1.6 s after a LocalDeploy
+  restart; with the 8B LLM generating at the same time, 1.1 s instead of 0.7 s, and the LLM 21% slower.
 
 ### CPU (8 threads), long route wording, fastest first
 
@@ -163,11 +178,11 @@ VRAM includes about 1 GB the desktop was already using.
 
 ### Reference: today's LLM concierge (qwen3-vl 8B through LocalDeploy)
 
-route accuracy 88%, chat vs task 92%, dropped tasks 7, spurious 1, confidence 0.95 to 1.00 whether right or wrong (right 0.967, wrong 0.962), median 15.0 s, p95 17.8 s.
+route accuracy 92%, chat vs task 97%, dropped tasks 2, spurious 1, confidence 0.95 to 1.00 whether right or wrong, median 15.3 s, p95 17.3 s (rerun with corrected scoring; the first run, scored without the status task type, reported 88%).
 
 \* made locally from the published BF16 GGUF with `llama-quantize`. VRAM in use includes about 1 GB the desktop was already using.
-`d3-mini` on a CPU was timed on a 15-message sample (8.1 s with the long wording, 4.6 s with the short one); its accuracy
-is from the full GPU run. Kev-4B is slow on the GPU because it filled the card (7.8 GB in use).
+`d3-mini` on a CPU was first timed on a 15-message sample (8.1 s with the long wording, 4.6 s with the short one); the
+validation runs below added a full CPU run (95%, 7.8 s). Kev-4B is slow on the GPU because it filled the card (7.8 GB in use).
 
 **Cautions.** One author labeled the 98 messages, a few labels are arguable (for example "open youtube.com" as a browser or
 an app action), the set is small, and everything ran on one laptop that was otherwise lightly used. The 12-message steering set
@@ -180,7 +195,9 @@ is too small for more than a hint. Licenses: `d3-*`, Kev, Julia and Laya are Apa
 
 Nine disabled recipes use `"backend": "decision"`. Four run a GGUF file in a `llama-server` that LocalDeploy starts
 (`llamacpp` adapter, no Python packages): `d3_lite_decision` (the CPU pick), `d3_nano_decision`, `d3_mini_decision` (for a
-GPU) and `d1_3b_gguf_decision`. Four use PyTorch and need `requirements-decision.txt`: `d1_omni_600m_decision`,
+GPU) and `d1_3b_gguf_decision`. `d3_lite_decision` and `d3_nano_decision` carry `"quantize": "Q4_K_M"`: their first
+request makes the Q4_K_M file from the published BF16 one and later requests reuse it (for d3-lite, 25 s on first use
+here, including the download; the file matched the benchmarked one byte for byte). Four use PyTorch and need `requirements-decision.txt`: `d1_omni_600m_decision`,
 `d1_3b_decision`, `laya_decision` and `laya_typed_decision`; they pin the Hugging Face commit that was tested, and the d1 ones
 run code that ships with the model, so they need `"trust_remote_code": true`. `systemone_http_decision` forwards to another
 `/v1/systemone` server on this machine. Models under the LFM Open License v1.0 also need `"license_accepted": true`. See
