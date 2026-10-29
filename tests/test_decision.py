@@ -531,6 +531,69 @@ def test_the_build_number_is_read_from_llama_server_version(monkeypatch, output,
     assert decision.llama_server_build("llama-server") == build
 
 
+class _PsProcess:
+    """Stands in for psutil.Process: one recorded llama-server, or another program with a reused id."""
+
+    killed = []
+
+    def __init__(self, pid, name="llama-server.exe", created=1000.0):
+        self.pid, self._name, self._created = pid, name, created
+
+    def name(self):
+        return self._name
+
+    def create_time(self):
+        return self._created
+
+    def terminate(self):
+        _PsProcess.killed.append(self.pid)
+
+    def wait(self, timeout=None):
+        return 0
+
+
+@pytest.mark.parametrize(
+    "running, stopped",
+    [
+        (dict(name="llama-server.exe", created=1000.0), True),  # the one the killed LocalDeploy started
+        (dict(name="llama-server.exe", created=2000.0), False),  # same id, started later: not ours
+        (dict(name="chrome.exe", created=1000.0), False),  # the id now belongs to another program
+    ],
+)
+def test_a_llama_server_left_by_a_killed_localdeploy_is_stopped_before_a_new_one(monkeypatch, tmp_path, _llama, running, stopped) -> None:
+    """A forced stop skips the exit handler; its llama-server would otherwise keep the model in memory."""
+    _PsProcess.killed = []
+    monkeypatch.setitem(sys.modules, "psutil", types.SimpleNamespace(Process=lambda pid: _PsProcess(pid, **running)))
+    adapter = decision.LlamaCppAdapter("gguf", _llama_profile(tmp_path))
+    pid_file = tmp_path / "logs" / "decision-gguf.pid"
+    pid_file.parent.mkdir(parents=True, exist_ok=True)
+    pid_file.write_text("4242 1000.0", encoding="utf-8")
+
+    adapter.load()
+
+    assert _PsProcess.killed == ([4242] if stopped else [])
+    adapter.stop()
+    assert not pid_file.exists()
+
+
+def test_the_started_llama_server_is_recorded_and_forgotten_on_stop(monkeypatch, tmp_path, _llama) -> None:
+    monkeypatch.setitem(sys.modules, "psutil", types.SimpleNamespace(Process=lambda pid: _PsProcess(pid, created=1234.5)))
+
+    def popen(command, **kwargs):
+        process = _FakeProcess()
+        process.pid = 777
+        _llama["process"] = process
+        return process
+
+    monkeypatch.setattr(decision.subprocess, "Popen", popen)
+    adapter = decision.LlamaCppAdapter("gguf", _llama_profile(tmp_path))
+    adapter.load()
+    pid_file = tmp_path / "logs" / "decision-gguf.pid"
+    assert pid_file.read_text(encoding="utf-8") == "777 1234.5"
+    adapter.stop()
+    assert not pid_file.exists()
+
+
 # --- quantize on first use ----------------------------------------------------
 
 REPO_FILES = ["README.md", "mmproj-vllm-d3-lite-BF16.gguf", "vllm-d3-lite-BF16.gguf", "vllm-d3-lite-Q8_0.gguf"]

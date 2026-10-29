@@ -505,17 +505,57 @@ class LlamaCppAdapter(HttpAdapter):
             raise DecisionUnavailable("device must be 'auto', 'cpu' or 'cuda'.")
         return command
 
+    def _pid_path(self) -> Path:
+        return app_home() / "logs" / f"decision-{re.sub(r'[^A-Za-z0-9_.-]', '_', self.profile_name)}.pid"
+
+    def _stop_left_over(self) -> None:
+        """Stop the llama-server a LocalDeploy that was killed outright left running.
+
+        A crash or a forced stop skips the exit handler, so its llama-server keeps the model in memory (about
+        1 GB for d3-lite) until something ends it. The pid file names that exact process by id and start time, so
+        no other llama-server (a chat model's, a user's own) is touched, even if the id has been reused.
+        """
+        path = self._pid_path()
+        try:
+            pid_text, created_text = path.read_text(encoding="utf-8").split()
+            pid, created = int(pid_text), float(created_text)
+        except (OSError, ValueError):
+            return
+        try:
+            import psutil
+
+            process = psutil.Process(pid)
+            if abs(process.create_time() - created) < 1 and "llama-server" in process.name().lower():
+                process.terminate()
+                process.wait(timeout=10)
+        except Exception:  # noqa: BLE001 - already gone, or not the process that was recorded
+            pass
+        path.unlink(missing_ok=True)
+
+    def _record_pid(self) -> None:
+        pid = getattr(self.process, "pid", None)
+        if not isinstance(pid, int):
+            return
+        try:
+            import psutil
+
+            self._pid_path().write_text(f"{pid} {psutil.Process(pid).create_time()}", encoding="utf-8")
+        except Exception:  # noqa: BLE001 - only a convenience for the next start
+            pass
+
     def load(self) -> None:
         command = self._command(self._server(), int(self.profile.get("port") or _free_port()))
         port = int(command[command.index("--port") + 1])
         logs = app_home() / "logs"
         logs.mkdir(parents=True, exist_ok=True)
+        self._stop_left_over()
         self.log_path = logs / f"decision-{re.sub(r'[^A-Za-z0-9_.-]', '_', self.profile_name)}.log"
         with open(self.log_path, "ab") as log:
             self.process = subprocess.Popen(  # noqa: S603 - the command is built here from validated profile fields
                 command, stdout=log, stderr=log, stdin=subprocess.DEVNULL,
                 creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
             )
+        self._record_pid()
         base = f"http://127.0.0.1:{port}"
         deadline = time.monotonic() + float(self.profile.get("startup_timeout_seconds") or 180)
         while time.monotonic() < deadline:
@@ -569,6 +609,11 @@ class LlamaCppAdapter(HttpAdapter):
                 process.wait(timeout=10)
             except subprocess.TimeoutExpired:
                 process.kill()
+        if process is not None:
+            try:
+                self._pid_path().unlink(missing_ok=True)
+            except OSError:
+                pass
 
     def describe(self) -> Dict[str, Any]:
         info = super().describe()
