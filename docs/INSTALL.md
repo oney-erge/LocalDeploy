@@ -10,6 +10,12 @@ temporary network failures up to three times, and writes persistent failures
 to `.setup/install.log`. The `logs` action follows the active native or
 Docker logs rather than requiring Docker.
 
+Decision models (`/v1/systemone`) are optional and need extra packages: run
+`python -m pip install -r requirements-decision.txt` in LocalDeploy's
+environment. The packages take about 4.5 GB with CUDA support, and each model
+downloads on first use (about 2.2 GB for d1-omni-600M, 2.3 GB for Laya, 5.9 GB
+for d1-3B). See [Decision models](API_OPTIONS.md#decision-models).
+
 From a clone:
 
 ```powershell

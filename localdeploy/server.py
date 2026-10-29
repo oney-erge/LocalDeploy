@@ -19,6 +19,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 import localdeploy
+from localdeploy.backends import decision
 from localdeploy.backends.llamacpp import call_llamacpp, llama_health
 from localdeploy.backends.ollama import (
     call_ollama_detailed,
@@ -55,7 +56,7 @@ APP_DIR = Path(__file__).resolve().parents[1]
 APP_HOME = app_home()
 load_dotenv(APP_HOME / ".env")
 
-SUPPORTED_BACKENDS = {"ollama", "llamacpp", "lmstudio", "vllm", "docker", "openai"}
+SUPPORTED_BACKENDS = {"ollama", "llamacpp", "lmstudio", "vllm", "docker", "openai", decision.DECISION_BACKEND}
 
 
 class ChatRequest(BaseModel):
@@ -136,6 +137,15 @@ class OpenAIEmbeddingRequest(BaseModel):
     encoding_format: str = "float"
     dimensions: Optional[int] = None
     user: Optional[str] = None
+
+
+class SystemOneRequest(BaseModel):
+    """Typed questions about one piece of text, answered by a decision model."""
+
+    state: Any = None
+    questions: Dict[str, Any]
+    model: Optional[str] = None
+    profile: Optional[str] = None
 
 
 class OpenAIResponseRequest(BaseModel):
@@ -349,7 +359,12 @@ def resolve_profile(
     if backend not in SUPPORTED_BACKENDS:
         return profile_name, profile, f"Unsupported backend '{backend}' in profile '{profile_name}'."
 
-    if require_gpu_only():
+    if require_gpu_only() and backend == decision.DECISION_BACKEND:
+        if str(profile.get("device") or "auto").lower() != "cuda":
+            return profile_name, profile, (
+                f"GPU-only mode is enabled, but decision profile '{profile_name}' does not set device to 'cuda'."
+            )
+    elif require_gpu_only():
         gpu_layers = str(profile.get("gpu_layers") or "").strip().lower()
         if backend != "llamacpp":
             return profile_name, profile, (
@@ -369,10 +384,11 @@ def resolve_profile(
             "llama.cpp backend is disabled. Set ENABLE_LLAMA_CPP=true after starting a local llama-server.",
         )
 
-    try:
-        profile["base_url"] = get_backend_base_url(profile, backend)
-    except BackendCallError as exc:
-        return profile_name, profile, str(exc)
+    if backend != decision.DECISION_BACKEND:  # decision models run in-process; the HTTP adapter checks its own URL
+        try:
+            profile["base_url"] = get_backend_base_url(profile, backend)
+        except BackendCallError as exc:
+            return profile_name, profile, str(exc)
 
     return profile_name, profile, None
 
@@ -506,6 +522,16 @@ def prepare_request(
     if profile is None:
         return None, make_error_response(error="Profile resolution returned no profile.")
     backend = str(profile.get("backend")).lower()
+    if backend == decision.DECISION_BACKEND:
+        return None, make_error_response(
+            error=(
+                f"Invalid request: profile '{profile_name}' is a decision model. It answers typed questions at "
+                "POST /v1/systemone and does not generate text."
+            ),
+            backend=backend,
+            profile=profile_name,
+            model=profile.get("model_id"),
+        )
     prompt = data.get("prompt") or ""
     system_prompt = data.get("system_prompt") or ""
     response_format = data.get("response_format")
@@ -854,7 +880,9 @@ def run_benchmark(request_data: Dict[str, Any]) -> Dict[str, Any]:
     prompts = data.get("prompts") or ([data["prompt"]] if data.get("prompt") else benchmark_prompts())
     if data.get("all_profiles"):
         profile_names = [
-            name for name, profile in config.get("profiles", {}).items() if profile.get("enabled", False)
+            name
+            for name, profile in config.get("profiles", {}).items()
+            if profile.get("enabled", False) and profile.get("backend") != decision.DECISION_BACKEND
         ]
     else:
         profile_names = [
@@ -1331,6 +1359,7 @@ def health() -> Dict[str, Any]:
             "error": ollama_error,
         },
         "llamacpp": llama_status,
+        "decision": {"loaded": decision.status()},
         "limits": get_global_limits(),
     }
 
@@ -1380,6 +1409,7 @@ def openai_models() -> Dict[str, Any]:
                 "owned_by": "localdeploy",
                 "localdeploy": {
                     "backend": profile.get("backend"),
+                    "kind": "decision" if profile.get("backend") == decision.DECISION_BACKEND else "chat",
                     "model_id": profile.get("model_id"),
                     "supports_vision": profile.get("supports_vision"),
                     "recommended_for_8gb_vram": profile.get("recommended_for_8gb_vram"),
@@ -1466,6 +1496,69 @@ def openai_embeddings(request: OpenAIEmbeddingRequest) -> Any:
         encoded = encode_embedding_base64(vector) if request.encoding_format == "base64" else vector
         data.append({"object": "embedding", "embedding": encoded, "index": index})
     return {"object": "list", "data": data, "model": request.model, "usage": usage}
+
+
+def _decision_error(status_code: int, code: str, message: str) -> JSONResponse:
+    return JSONResponse(
+        status_code=status_code,
+        content={"error": {"message": message, "type": "localdeploy_decision_error", "param": None, "code": code}},
+    )
+
+
+def _default_decision_profile(config: Dict[str, Any]) -> Optional[str]:
+    configured = os.getenv("DEFAULT_DECISION_PROFILE") or config.get("default_decision_profile")
+    if configured:
+        return str(configured)
+    for name, profile in config.get("profiles", {}).items():
+        if profile.get("enabled", False) and profile.get("backend") == decision.DECISION_BACKEND:
+            return name
+    return None
+
+
+@app.post("/v1/systemone")
+def system_one(request: SystemOneRequest) -> Any:
+    """Typed answers (with probabilities) to named questions about one state.
+
+    Wire-compatible with the System One request/response shape: ``state`` plus
+    ``questions`` in, ``answers`` plus ``usage`` out. ``model`` (or ``profile``)
+    names a decision profile; without one, the default decision profile is used.
+    """
+    config = load_config()
+    requested = request.profile or request.model
+    profiles = config.get("profiles", {})
+    if requested and requested not in profiles:
+        requested = next((n for n, p in profiles.items() if str(p.get("model_id")) == requested), requested)
+    name = requested or _default_decision_profile(config)
+    if not name:
+        return _decision_error(
+            404, "no_decision_profile",
+            "No enabled decision profile. Enable one in config.json (see docs/API_OPTIONS.md, 'Decision models').",
+        )
+    resolved_name, profile, error = resolve_profile(config, {"profile": name}, require_enabled=True)
+    if error or profile is None:
+        return _decision_error(404, "profile_unavailable", error or f"Profile '{name}' could not be resolved.")
+    if profile.get("backend") != decision.DECISION_BACKEND:
+        return _decision_error(
+            400, "invalid_request",
+            f"Invalid request: profile '{resolved_name}' is not a decision model. Use /v1/chat/completions for it.",
+        )
+    try:
+        result = decision.decide(resolved_name, profile, request.state, request.questions)
+    except decision.DecisionRequestError as exc:
+        return _decision_error(400, "invalid_request", f"Invalid request: {exc}")
+    except decision.DecisionUnavailable as exc:
+        return _decision_error(503, "decision_unavailable", str(exc))
+    except BackendCallError as exc:
+        return _decision_error(502, "decision_failed", str(exc))
+    body = {
+        "answers": result["answers"],
+        "model": resolved_name,
+        "usage": result.get("usage") or {},
+        "latency_ms": result["latency_ms"],
+    }
+    if "load_ms" in result:
+        body["load_ms"] = result["load_ms"]
+    return body
 
 
 def _responses_chat_request(request: OpenAIResponseRequest) -> OpenAIChatCompletionRequest:

@@ -4,6 +4,14 @@ All notable changes to this project should be documented here.
 
 ## Unreleased
 
+- LocalDeploy can now serve **decision models** at `POST /v1/systemone`. A decision model does not write text: you
+  give it a piece of text and named questions ("is this chat or a task, and which route?") and it returns a typed
+  answer with a probability for every option, in about a tenth of a second on a GPU (seconds on a CPU).
+  Applications can act on a confident answer and call a language model only when it is not. Adapters ship for
+  LiquidAI d1 and Laya, plus a loopback forwarder for any other `/v1/systemone` server. Profiles are off by default
+  and the packages are optional (`pip install "localdeploy[decision]"`). `docs/MODELS.md` compares the models on a
+  routing task: `d1-3B` works, `d1-omni-600M` and untrained Laya do not. See "Decision models" in
+  `docs/API_OPTIONS.md`.
 - Guided recommendations and automated comparisons now include the requested
   context length in the estimated memory budget. The download budget is also
   respected when even the first candidate is too large.

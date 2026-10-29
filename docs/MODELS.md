@@ -57,6 +57,51 @@ python benchmark.py --skip-categories math
 
 JSON and Markdown reports are written under `reports/`. The web UI can also export self-contained HTML report cards.
 
+## Decision models
+
+Decision models answer typed questions at `POST /v1/systemone` instead of writing text; see
+[Decision models](API_OPTIONS.md#decision-models). This run compares the three that LocalDeploy has adapters for
+on one job: routing a message sent to a computer-agent bot to one of 15 routes (chat, status, files, browser,
+scheduling, and so on). It is not a ranking of the models in general.
+
+Workload: 98 hand-labeled, synthetic messages in `examples/decision/routing_eval.json`, plus 12 steering and
+answer cases, asked as one 15-option question. Hardware: RTX 3080 Laptop GPU (8 GB), Ryzen 9 5900HS, Windows,
+`OFFLINE=true`. "Dropped tasks" counts real tasks answered as chat, the costly mistake; "spurious tasks" counts
+chat turned into a task. "Settled at 95%" is the share of messages a confidence cut-off could answer while
+staying at 95% accuracy or better. ECE is how far stated confidence is from actual accuracy (lower is better).
+
+| Profile | Route accuracy | Chat vs task | Dropped tasks | Spurious tasks | ECE | Settled at 95% | Median | p95 | Steering |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| `d1_3b_decision` on GPU (bf16) | 84% | 96% | 3 | 1 | 0.031 | 62% (confidence >= 0.87) | 108 ms | 111 ms | 92% |
+| `d1_3b_decision` on CPU (fp32) | 84% | 96% | 3 | 1 | 0.031 | 62% | 6.8 s | 7.4 s | 92% |
+| `d1_omni_600m_decision` on GPU (fp16) | 55% | 60% | 38 | 1 | 0.177 | 0% | 20 ms | 26 ms | 50% |
+| `d1_omni_600m_decision` on CPU (fp32) | 55% | 60% | 38 | 1 | 0.177 | 0% | 1.0 s | 1.2 s | 50% |
+| `laya_decision` on GPU | 29% | 86% | 0 | 14 | 0.122 | 0% | 30 ms | 41 ms | 33% |
+| `laya_decision` on CPU | 28% | 86% | 0 | 14 | 0.107 | 0% | 0.6 s | 0.7 s | 33% |
+| `laya_typed_decision` on GPU | 26% | 84% | 2 | 14 | 0.127 | 2% | 30 ms | 42 ms | 50% |
+| `laya_typed_decision` on CPU | 27% | 85% | 1 | 14 | 0.118 | 1% | 0.8 s | 0.8 s | 50% |
+| Reference: a generative LLM (`qwen3-vl:8b-instruct`) asked the same question through YBM's classifier | 88% | 92% | 7 | 1 | not measured | not measured | 15 s | 18 s | not measured |
+
+What the run supports:
+
+- `d1-3B` is the one that works. It answers in about 0.1 s on the GPU with a confidence that can be trusted
+  (ECE 0.03), and its answers are the same on the CPU, only slower. Its weak routes were `status` and `configuration`.
+- `d1-omni-600M` is not accurate enough for a 15-way choice: it answers chat for 38 real tasks. It is a research
+  release; Liquid's own Decision Index scores it 15.95 against 48.57 for `d1-3B`.
+- Laya's English and `typed-decisions` checkpoints are close to chance on this task without training, which its model
+  card says: "a fast base to specialise, not a zero-shot decision engine". Fine-tuning on your own decisions is how
+  to use it, and it is the Apache-2.0 option.
+- Against the generative model, `d1-3B` is less accurate on the exact route (86% against 94% once the `status` route,
+  which the LLM answers through a separate field, is left out) but better at chat versus task (96% against 92%), more
+  than 100 times faster on the GPU, and the two make different mistakes: when they agree they are right 95% of the time. The
+  LLM's own confidence was 0.95 to 1.00 whether it was right or wrong, so it cannot be used as a gate.
+
+Cautions: one author labeled the 98 messages, a few labels are arguable (for example "open youtube.com" as a browser
+or an app action), the set is small, and everything ran on one laptop. `d1-3B` needs about 6.3 GB of GPU memory, so on an
+8 GB card it cannot stay loaded beside an 8B chat model. LFM Open License v1.0 allows commercial use below US$10
+million annual revenue; Laya is Apache-2.0. Reproduce with `python scripts/decision_bench.py --profile NAME`, and add
+your own messages to the labeled set before relying on any of this.
+
 ## Reference profiles
 
 Live `config.json` files start empty and fill as models are pulled. `config.example.json` shows the available fields and a few profile recipes. Copy only the entries you intend to use.
@@ -87,6 +132,14 @@ Live `config.json` files start empty and fill as models are pulled. `config.exam
 The example has GGUF recipes for Gemma 3 12B and Qwen3 8B. Their `model_id` values are placeholder Windows paths. Change them to real local files before enabling the profiles.
 
 The recipes use flash attention and `q8_0` K/V cache types. Current llama.cpp options and supported cache types are documented in the [llama.cpp server README](https://github.com/ggml-org/llama.cpp/blob/master/tools/server/README.md).
+
+### Decision profiles
+
+Five disabled recipes use `"backend": "decision"`: `d1_omni_600m_decision` and `d1_3b_decision` (LiquidAI d1),
+`laya_decision` and `laya_typed_decision` (Laya), and `systemone_http_decision`, which forwards to another
+`/v1/systemone` server on this machine. They pin the Hugging Face commit that was tested. The d1 recipes run code
+that ships with the model, so they need `"trust_remote_code": true` and `"license_accepted": true` (LFM Open License
+v1.0) before they will load. See [Decision models](API_OPTIONS.md#decision-models).
 
 ## Quantization notes
 

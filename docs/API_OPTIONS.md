@@ -101,6 +101,88 @@ tools, and `max_output_tokens`. Non-streaming responses return `output_text` plu
 Profiles may target `ollama`, `llamacpp`, `lmstudio`, `vllm`, `docker`, or `openai`. Every backend
 URL is still required to resolve to loopback; provider support does not permit cloud API URLs.
 
+## Decision models
+
+A decision model does not write text. You give it a piece of text (the *state*) and named
+*questions*; it returns one typed answer per question with a probability for every option, in a
+single forward pass. Use it inside an application to classify or route ("is this chat or a task,
+and which route?") and call a language model only when the answer is not confident.
+
+Decision profiles (`"backend": "decision"`) are off by default and need optional packages:
+
+```bash
+python -m pip install -r requirements-decision.txt     # or: pip install "localdeploy[decision]"
+```
+
+On Windows the default `torch` wheel is CPU-only; install an NVIDIA build first if you want the
+GPU (see the comments in `requirements-decision.txt`). Then set `"enabled": true` on a profile in
+`config.json`. A model with its own license also needs `"license_accepted": true` once you have
+read it (LiquidAI d1 uses the LFM Open License v1.0). Models load on first use, which the response
+reports as `load_ms`, and stay loaded. With `OFFLINE=true` they load from the local Hugging Face
+cache only. Profiles that run code shipped with the model (`d1`) require `"trust_remote_code": true`
+and a pinned `"revision"`; the shipped profiles pin the commit that was tested.
+
+| `adapter` | Runs | Notes |
+|---|---|---|
+| `d1` | LiquidAI d1 (`d1-omni-600M`, `d1-3B`) in this process | `device`: `auto`, `cpu` or `cuda`; `dtype` as the model card advises |
+| `laya` | Laya checkpoints (`english`, `multilingual`, `typed-decisions`) in this process | Apache-2.0; `checkpoint` picks one |
+| `systemone-http` | Forwards to another server on this machine that already speaks `/v1/systemone` | Loopback `base_url` only; no extra packages |
+
+```bash
+curl http://127.0.0.1:8000/v1/systemone -H "Content-Type: application/json" -d '{
+  "model": "d1_omni_600m_decision",
+  "state": "remind me tomorrow at 9am to send the budget draft",
+  "questions": {
+    "route": {
+      "type": "choice",
+      "instructions": "Which route should handle this message?",
+      "criteria": {
+        "conversation": "chat or a general question",
+        "schedule.manage": "reminders and recurring jobs",
+        "filesystem.manage": "look at or change files"
+      }
+    },
+    "urgent": {"type": "noul", "instructions": "Does the message ask for something urgent?"}
+  }
+}'
+```
+
+```json
+{
+  "answers": {
+    "route": {"choice": "schedule.manage", "confidence": 0.99,
+              "probabilities": {"conversation": 0.003, "schedule.manage": 0.99, "filesystem.manage": 0.007}},
+    "urgent": {"noul": 0.04}
+  },
+  "model": "d1_omni_600m_decision",
+  "usage": {"input_tokens": 118, "output_tokens": 0},
+  "latency_ms": 41.3
+}
+```
+
+The values above are illustrative. `state` is text or any JSON value. Several questions about one state are
+answered together; where the PyTorch build has no flash-attention kernel (the Windows CUDA wheels), `d1` falls back
+to asking them one at a time on the GPU, with the same answers and no shared-pass speedup. Question types:
+
+| `type` | `criteria` | Answer |
+|---|---|---|
+| `choice` | `{option: description}`, 2 to 100 options | `choice`, `confidence`, `probabilities` |
+| `score` | list of 2 to 10 level descriptions, lowest first | `score`, `confidence`, `probabilities` |
+| `noul` | optional `{"true": "...", "false": "..."}` | `noul`: the probability of yes |
+
+`model` (or `profile`) names a decision profile; without it the first enabled decision profile is
+used, or `default_decision_profile` in `config.json`. Limits: 32 questions, 30,000 characters of
+state (or the profile's `max_prompt_chars`). Errors use the same JSON error shape as the other
+endpoints: `400` for a malformed request, `404` when no decision profile is enabled, `503` when
+the profile cannot be used yet (packages missing, license not accepted, model files absent in
+offline mode), and `502` when the model fails while answering.
+
+Treat `confidence` as a gate, not a guarantee: act on answers above a cut-off you have measured
+and send the rest to a language model. `python scripts/decision_bench.py --profile NAME` measures
+that on the labeled set in `examples/decision/`, including how many messages a cut-off settles.
+Decision profiles are for `/v1/systemone` only; the chat endpoints reject them with a message
+saying so, and `/health` lists the decision models currently loaded.
+
 ## Context Testing
 
 The API defaults are intentionally conservative. Use `compare_models.py` for normal comparisons. For probing larger contexts, increase limits in your local `config.json` or test directly against Ollama with `num_ctx` before changing API defaults.

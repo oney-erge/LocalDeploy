@@ -25,6 +25,15 @@ classifiers = [
   "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
 [project.optional-dependencies]
+# Decision models served at /v1/systemone (d1, Laya). Mirrors requirements-decision.txt.
+decision = [
+  "torch>=2.5",
+  "torchvision>=0.20",
+  "transformers>=5.15",
+  "pillow>=10.0",
+  "soundfile>=0.12",
+  "laya>=0.4.17",
+]
 # Desktop tray launcher + PyInstaller build (Windows .exe/.msi, macOS .app/.dmg).
 # Not required to run LocalDeploy itself - only to build the bundled apps.
 packaging = [
