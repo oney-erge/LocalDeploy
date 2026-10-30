@@ -5,6 +5,7 @@ param(
 $ErrorActionPreference = "Stop"
 $ProjectRoot = Split-Path -Parent $PSScriptRoot
 Set-Location $ProjectRoot
+. "$PSScriptRoot\install-utils.ps1"
 
 function Write-Step {
     param([string]$Message)
@@ -35,19 +36,15 @@ function Test-Health {
 }
 
 function Stop-PidFile {
-    param([string]$Path, [string]$Label)
+    param([string]$Path, [string]$Label, [string]$CommandLineLike)
     if (-not (Test-Path -LiteralPath $Path)) { return }
-
-    $rawPid = (Get-Content -LiteralPath $Path -Raw).Trim()
-    [int]$processId = 0
-    if ([int]::TryParse($rawPid, [ref]$processId)) {
-        Stop-Process -Id $processId -Force -ErrorAction SilentlyContinue
-        Write-Step "Stopped $Label (PID: $processId)"
+    $rawPid = "$(Get-Content -LiteralPath $Path -Raw -ErrorAction SilentlyContinue)".Trim()
+    if (Stop-RecordedProcess -PidFile $Path -CommandLineLike $CommandLineLike) {
+        Write-Step "Stopped $Label (PID: $rawPid)"
     }
     else {
-        Write-Warning "Ignoring invalid $Label PID file: $rawPid"
+        Write-Step "Removed a stale $Label PID file (PID $rawPid no longer runs it)"
     }
-    Remove-Item -LiteralPath $Path -Force -ErrorAction SilentlyContinue
 }
 
 function Get-PythonAncestorIds {
@@ -95,7 +92,7 @@ function Stop-ApiListener {
 
 $apiPort = Get-ApiPort
 
-Stop-PidFile -Path ".\logs\api_server.pid" -Label "LocalDeploy API"
+Stop-PidFile -Path ".\logs\api_server.pid" -Label "LocalDeploy API" -CommandLineLike "*api_server.py*"
 Stop-ApiListener -Port $apiPort
 
 if (Test-Health -Port $apiPort) {
@@ -105,7 +102,7 @@ else {
     Write-Host "LocalDeploy API stopped successfully" -ForegroundColor Green
 }
 
-Stop-PidFile -Path ".\logs\llama_server.pid" -Label "llama.cpp server"
+Stop-PidFile -Path ".\logs\llama_server.pid" -Label "llama.cpp server" -CommandLineLike "*llama-server*"
 Get-Process "llama-server" -ErrorAction SilentlyContinue | ForEach-Object {
     Stop-Process -Id $_.Id -Force -ErrorAction SilentlyContinue
     Write-Step "Stopped llama.cpp server (PID: $($_.Id))"

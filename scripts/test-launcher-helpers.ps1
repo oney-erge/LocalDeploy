@@ -70,6 +70,24 @@ try {
 } finally {
   Remove-Item -LiteralPath $scratch -Recurse -Force -ErrorAction SilentlyContinue
 }
+
+# A PID file names a process only while that PID still runs the recorded program. One left behind
+# after the API was killed elsewhere made stop.ps1 force-stop whatever held the number next.
+$pidFile = Join-Path ([IO.Path]::GetTempPath()) ("launcher-helper-" + [Guid]::NewGuid().ToString("N") + ".pid")
+$other = Start-Process -FilePath "cmd.exe" -ArgumentList "/c ping -n 30 127.0.0.1 > nul" -WindowStyle Hidden -PassThru
+try {
+  Set-Content -LiteralPath $pidFile -Value $other.Id
+  Assert-That (-not (Stop-RecordedProcess -PidFile $pidFile -CommandLineLike "*api_server.py*")) "a PID now running something else is not stopped"
+  Assert-That (-not $other.HasExited) "the unrelated process is still running"
+  Assert-That (-not (Test-Path -LiteralPath $pidFile)) "the stale PID file is removed"
+
+  Set-Content -LiteralPath $pidFile -Value $other.Id
+  Assert-That (Stop-RecordedProcess -PidFile $pidFile -CommandLineLike "*ping -n 30*") "the recorded program is stopped"
+  Assert-That (-not (Stop-RecordedProcess -PidFile $pidFile -CommandLineLike "*")) "a missing PID file stops nothing"
+} finally {
+  Stop-Process -Id $other.Id -Force -ErrorAction SilentlyContinue
+  Remove-Item -LiteralPath $pidFile -Force -ErrorAction SilentlyContinue
+}
 Write-Host "All launcher helper checks passed."
 # The probes above leave $LASTEXITCODE at 103 on purpose, and CI's PowerShell step exits with $LASTEXITCODE.
 exit 0
