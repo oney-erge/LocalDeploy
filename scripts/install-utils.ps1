@@ -197,3 +197,20 @@ function Complete-Install {
   Add-InstallLog "bootstrap complete"
   Exit-InstallLock
 }
+
+function Stop-RecordedProcess {
+  # Stops the process a launcher recorded in PidFile, but only while that PID still runs the
+  # program it recorded. The file outlives a process that died or was killed elsewhere, and
+  # Windows reuses PIDs: stopping whatever holds the number now could end an unrelated program.
+  # Removes the file either way; returns whether a process was stopped.
+  param([string]$PidFile, [string]$CommandLineLike)
+  if (-not (Test-Path -LiteralPath $PidFile)) { return $false }
+  $rawPid = "$(Get-Content -LiteralPath $PidFile -Raw -ErrorAction SilentlyContinue)".Trim()
+  Remove-Item -LiteralPath $PidFile -Force -ErrorAction SilentlyContinue
+  [int]$processId = 0
+  if (-not [int]::TryParse($rawPid, [ref]$processId)) { return $false }
+  $process = Get-CimInstance Win32_Process -Filter "ProcessId = $processId" -ErrorAction SilentlyContinue
+  if (-not $process -or "$($process.CommandLine)" -notlike $CommandLineLike) { return $false }
+  Stop-Process -Id $processId -Force -ErrorAction SilentlyContinue
+  return $true
+}

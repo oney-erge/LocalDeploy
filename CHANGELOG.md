@@ -4,6 +4,9 @@ All notable changes to this project should be documented here.
 
 ## Unreleased
 
+- `scripts/stop.ps1` and a restart through `scripts/start.ps1` stop the process in `logs\api_server.pid` or
+  `logs\llama_server.pid` only while that PID still runs the API server or llama-server. A PID file outlives a server
+  that was killed some other way, and Windows reuses PIDs, so the old scripts could force-stop an unrelated program.
 - A decision profile with `"device": "cpu"` now starts llama-server with `--device none`. With a Vulkan or CUDA
   build of llama.cpp (the WinGet package is Vulkan), `-ngl 0` alone still sent prompt work to the GPU: about 300 MB of
   the chat model's GPU memory and about 10 s of shader compiling on the first request.

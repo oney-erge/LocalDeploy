@@ -384,12 +384,7 @@ Complete-Install
 function Stop-RunningApi {
     # Prefer the PID file the background launcher writes; fall back to whoever
     # holds the port.
-    $pidFile = ".\logs\api_server.pid"
-    if (Test-Path -LiteralPath $pidFile) {
-        $apiPid = Get-Content -LiteralPath $pidFile -ErrorAction SilentlyContinue
-        if ($apiPid) { Stop-Process -Id $apiPid -Force -ErrorAction SilentlyContinue }
-        Remove-Item -LiteralPath $pidFile -Force -ErrorAction SilentlyContinue
-    }
+    [void](Stop-RecordedProcess -PidFile ".\logs\api_server.pid" -CommandLineLike "*api_server.py*")
     Clear-ZombieOnPort $healthUrl
     Start-Sleep -Milliseconds 400
 }
