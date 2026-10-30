@@ -66,6 +66,11 @@ Windows setup script. Desktop builds are experimental and unsigned; see
 - Monitor CPU, RAM, VRAM, model placement, and request timing while a model runs.
 - Connect compatible tools through `/v1/chat/completions`, `/v1/responses`,
   `/v1/embeddings`, and `/v1/models`.
+- Run small **decision models** (vLLM Semantic Router d3, LiquidAI d1, Laya) at `/v1/systemone`: ask
+  typed questions about a piece of text and get each answer with a probability, in under a second on a
+  CPU for the d3-lite model, so an app can classify or route locally and call a language model only
+  when the answer is not confident. Optional;
+  see [Decision models](docs/API_OPTIONS.md#decision-models) and the [comparison](docs/MODELS.md#decision-models).
 
 If you already know which Ollama model you want and only need terminal chat,
 Ollama may be enough. LocalDeploy is for selecting and evaluating models on a

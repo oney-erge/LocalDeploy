@@ -97,16 +97,44 @@ function Invoke-InstallNative {
   return [pscustomobject]@{ ExitCode = $exitCode; Output = $lines }
 }
 
+# The check Test-VenvPythonRuns runs against a venv's interpreter. A variable so the helper test can
+# stand in a harmless executable for Python.
+$script:VenvProbeArguments = @("-c", "import sys")
+
+# True when the interpreter really starts. A venv whose base Python was uninstalled (for example one
+# built from Anaconda that was later removed) still has Scripts\python.exe, but it exits with
+# "No Python at ..." and nothing that uses the venv can start.
+function Test-VenvPythonRuns {
+  param([string]$PythonPath)
+  try {
+    $probe = Invoke-InstallNative $PythonPath $script:VenvProbeArguments
+    return ($probe.ExitCode -eq 0)
+  } catch {
+    return $false
+  }
+}
+
 # An interrupted first setup can leave a .venv folder without a Python inside it, and uv refuses to
 # reuse or replace such a folder ("not a valid Python environment"), so every retry fails the same way.
-# Only a folder with no Python executable is removed; a working environment is never touched.
+# A folder with no Python executable is removed. One whose Python exists but cannot run is moved to
+# .setup\venv-broken-<time> (nothing is deleted) so the launcher builds a fresh one. A working
+# environment is never touched.
 function Remove-IncompleteVenv {
   param([string]$RepositoryRoot)
   $venv = Join-Path $RepositoryRoot ".venv"
   if (-not (Test-Path -LiteralPath $venv)) { return }
-  if (Test-Path -LiteralPath (Join-Path $venv "Scripts\python.exe")) { return }
-  Add-InstallLog "removing incomplete .venv left by an interrupted setup"
-  Remove-Item -LiteralPath $venv -Recurse -Force
+  $python = Join-Path $venv "Scripts\python.exe"
+  if (-not (Test-Path -LiteralPath $python)) {
+    Add-InstallLog "removing incomplete .venv left by an interrupted setup"
+    Remove-Item -LiteralPath $venv -Recurse -Force
+    return
+  }
+  if (Test-VenvPythonRuns $python) { return }
+  $parked = Join-Path $RepositoryRoot (".setup\venv-broken-" + (Get-Date -Format "yyyyMMdd-HHmmss-fff"))
+  New-Item -ItemType Directory -Path (Split-Path -Parent $parked) -Force | Out-Null
+  Add-InstallLog "the .venv Python no longer runs; moving it to $parked and rebuilding"
+  Write-Host "The existing Python environment no longer works (its Python was removed). Rebuilding it; the old one is kept at $parked" -ForegroundColor Yellow
+  Move-Item -LiteralPath $venv -Destination $parked
 }
 
 function Invoke-NativeQuiet {

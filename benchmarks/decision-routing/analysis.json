@@ -1,0 +1,438 @@
+{
+  "runs": [
+    {
+      "run": "d13b_q4-cpu-t8-heldout_long-r1",
+      "model_file": "d1-3B-Q4_K_M.gguf",
+      "device": "cpu",
+      "threads": 8,
+      "set": "heldout_long",
+      "tag": "r1",
+      "n": 43,
+      "accuracy": 0.7209,
+      "lo": 0.5731,
+      "hi": 0.8325
+    },
+    {
+      "run": "d13b_q4-cpu-t8-main_long-r1",
+      "model_file": "d1-3B-Q4_K_M.gguf",
+      "device": "cpu",
+      "threads": 8,
+      "set": "main_long",
+      "tag": "r1",
+      "n": 98,
+      "accuracy": 0.8265,
+      "lo": 0.7396,
+      "hi": 0.8888
+    },
+    {
+      "run": "d3lite_q4-cpu-t8-heldout_long-r1",
+      "model_file": "vllm-d3-lite-Q4_K_M.gguf",
+      "device": "cpu",
+      "threads": 8,
+      "set": "heldout_long",
+      "tag": "r1",
+      "n": 43,
+      "accuracy": 0.8605,
+      "lo": 0.7274,
+      "hi": 0.9344
+    },
+    {
+      "run": "d3lite_q4-cpu-t8-heldout_short-r1",
+      "model_file": "vllm-d3-lite-Q4_K_M.gguf",
+      "device": "cpu",
+      "threads": 8,
+      "set": "heldout_short",
+      "tag": "r1",
+      "n": 43,
+      "accuracy": 0.8372,
+      "lo": 0.7003,
+      "hi": 0.9188
+    },
+    {
+      "run": "d3lite_q4-cpu-t8-main_short-r1",
+      "model_file": "vllm-d3-lite-Q4_K_M.gguf",
+      "device": "cpu",
+      "threads": 8,
+      "set": "main_short",
+      "tag": "r1",
+      "n": 98,
+      "accuracy": 0.9286,
+      "lo": 0.8598,
+      "hi": 0.965
+    },
+    {
+      "run": "d3lite_q4-cpu-t8-main_short-r2",
+      "model_file": "vllm-d3-lite-Q4_K_M.gguf",
+      "device": "cpu",
+      "threads": 8,
+      "set": "main_short",
+      "tag": "r2",
+      "n": 98,
+      "accuracy": 0.9286,
+      "lo": 0.8598,
+      "hi": 0.965
+    },
+    {
+      "run": "d3lite_q4-cpu-t8-main_short-r3",
+      "model_file": "vllm-d3-lite-Q4_K_M.gguf",
+      "device": "cpu",
+      "threads": 8,
+      "set": "main_short",
+      "tag": "r3",
+      "n": 98,
+      "accuracy": 0.9286,
+      "lo": 0.8598,
+      "hi": 0.965
+    },
+    {
+      "run": "d3mini_q4-cpu-t8-heldout_long-r1",
+      "model_file": "vllm-d3-mini-Q4_K_M.gguf",
+      "device": "cpu",
+      "threads": 8,
+      "set": "heldout_long",
+      "tag": "r1",
+      "n": 43,
+      "accuracy": 0.9302,
+      "lo": 0.8139,
+      "hi": 0.976
+    },
+    {
+      "run": "d3mini_q4-cpu-t8-main_long-r1",
+      "model_file": "vllm-d3-mini-Q4_K_M.gguf",
+      "device": "cpu",
+      "threads": 8,
+      "set": "main_long",
+      "tag": "r1",
+      "n": 98,
+      "accuracy": 0.949,
+      "lo": 0.8861,
+      "hi": 0.978
+    },
+    {
+      "run": "d3nano_q4-cpu-t8-heldout_long-r1",
+      "model_file": "vllm-d3-nano-Q4_K_M.gguf",
+      "device": "cpu",
+      "threads": 8,
+      "set": "heldout_long",
+      "tag": "r1",
+      "n": 43,
+      "accuracy": 0.8605,
+      "lo": 0.7274,
+      "hi": 0.9344
+    },
+    {
+      "run": "d3nano_q4-cpu-t8-main_long-r1",
+      "model_file": "vllm-d3-nano-Q4_K_M.gguf",
+      "device": "cpu",
+      "threads": 8,
+      "set": "main_long",
+      "tag": "r1",
+      "n": 98,
+      "accuracy": 0.9286,
+      "lo": 0.8598,
+      "hi": 0.965
+    },
+    {
+      "run": "d3nano_q4-cpu-t8-main_long-r2",
+      "model_file": "vllm-d3-nano-Q4_K_M.gguf",
+      "device": "cpu",
+      "threads": 8,
+      "set": "main_long",
+      "tag": "r2",
+      "n": 98,
+      "accuracy": 0.9286,
+      "lo": 0.8598,
+      "hi": 0.965
+    },
+    {
+      "run": "d3lite_q4-cuda-t8-heldout_short-r1",
+      "model_file": "vllm-d3-lite-Q4_K_M.gguf",
+      "device": "cuda",
+      "threads": 8,
+      "set": "heldout_short",
+      "tag": "r1",
+      "n": 43,
+      "accuracy": 0.8837,
+      "lo": 0.7552,
+      "hi": 0.9493
+    },
+    {
+      "run": "d3mini_q4-cuda-t8-heldout_long-r1",
+      "model_file": "vllm-d3-mini-Q4_K_M.gguf",
+      "device": "cuda",
+      "threads": 8,
+      "set": "heldout_long",
+      "tag": "r1",
+      "n": 43,
+      "accuracy": 0.9535,
+      "lo": 0.8454,
+      "hi": 0.9872
+    },
+    {
+      "run": "d3mini_q4-cuda-t8-main_long-r1",
+      "model_file": "vllm-d3-mini-Q4_K_M.gguf",
+      "device": "cuda",
+      "threads": 8,
+      "set": "main_long",
+      "tag": "r1",
+      "n": 98,
+      "accuracy": 0.949,
+      "lo": 0.8861,
+      "hi": 0.978
+    },
+    {
+      "run": "d3mini_q4-cuda-t8-main_long-r2",
+      "model_file": "vllm-d3-mini-Q4_K_M.gguf",
+      "device": "cuda",
+      "threads": 8,
+      "set": "main_long",
+      "tag": "r2",
+      "n": 98,
+      "accuracy": 0.949,
+      "lo": 0.8861,
+      "hi": 0.978
+    }
+  ],
+  "repeats": [
+    {
+      "model": "vllm-d3-lite-Q4_K_M.gguf",
+      "device": "cpu",
+      "set": "main_short",
+      "runs": 3,
+      "identical_choices": true,
+      "medians_ms": [
+        533.4722,
+        532.2002,
+        538.5708
+      ]
+    },
+    {
+      "model": "vllm-d3-nano-Q4_K_M.gguf",
+      "device": "cpu",
+      "set": "main_long",
+      "runs": 2,
+      "identical_choices": true,
+      "medians_ms": [
+        2073.7381,
+        2039.4741
+      ]
+    },
+    {
+      "model": "vllm-d3-mini-Q4_K_M.gguf",
+      "device": "cuda",
+      "set": "main_long",
+      "runs": 2,
+      "identical_choices": true,
+      "medians_ms": [
+        170.9437,
+        173.6453
+      ]
+    }
+  ],
+  "llm_main": {
+    "n": 98,
+    "accuracy": 0.9183673469387755,
+    "ci95": [
+      0.8471155101442123,
+      0.9580564431636698
+    ],
+    "median_s": 15.297698850000002
+  },
+  "paired_main": {
+    "both_right": 86,
+    "only_decision_right": 5,
+    "only_llm_right": 4,
+    "both_wrong": 3,
+    "mcnemar_p": 1.0
+  },
+  "modes_main": [
+    {
+      "mode": "llm",
+      "threshold": 0.9,
+      "n": 98,
+      "accuracy": 0.9183673469387755,
+      "accuracy_ci95": [
+        0.8471155101442123,
+        0.9580564431636698
+      ],
+      "decided_alone": 0,
+      "decided_alone_share": 0.0,
+      "alone_accuracy": null,
+      "median_s": 15.297698850000002,
+      "mean_s": 14.62321324387755
+    },
+    {
+      "mode": "cascade",
+      "threshold": 0.9,
+      "n": 98,
+      "accuracy": 0.9081632653061225,
+      "accuracy_ci95": [
+        0.8346022720739837,
+        0.950931340909316
+      ],
+      "decided_alone": 33,
+      "decided_alone_share": 0.336734693877551,
+      "alone_accuracy": 0.9393939393939394,
+      "median_s": 12.65153075,
+      "mean_s": 9.838419351020407
+    },
+    {
+      "mode": "decision",
+      "threshold": 0.9,
+      "n": 98,
+      "accuracy": 0.9183673469387755,
+      "accuracy_ci95": [
+        0.8471155101442123,
+        0.9580564431636698
+      ],
+      "decided_alone": 51,
+      "decided_alone_share": 0.5204081632653061,
+      "alone_accuracy": 0.9607843137254902,
+      "median_s": 0.6026309,
+      "mean_s": 7.291413026530612
+    }
+  ],
+  "llm_heldout": {
+    "n": 43,
+    "accuracy": 0.8837209302325582,
+    "ci95": [
+      0.755205511093586,
+      0.9492964700513791
+    ],
+    "median_s": 16.9839081,
+    "dropped_tasks": 0
+  },
+  "paired_heldout": {
+    "both_right": 33,
+    "only_decision_right": 3,
+    "only_llm_right": 5,
+    "both_wrong": 2,
+    "mcnemar_p": 0.7265625
+  },
+  "modes_heldout": [
+    {
+      "mode": "llm",
+      "threshold": 0.9,
+      "n": 43,
+      "accuracy": 0.8837209302325582,
+      "accuracy_ci95": [
+        0.755205511093586,
+        0.9492964700513791
+      ],
+      "decided_alone": 0,
+      "decided_alone_share": 0.0,
+      "alone_accuracy": null,
+      "median_s": 16.9839081,
+      "mean_s": 17.358198309302328
+    },
+    {
+      "mode": "cascade",
+      "threshold": 0.9,
+      "n": 43,
+      "accuracy": 0.8837209302325582,
+      "accuracy_ci95": [
+        0.755205511093586,
+        0.9492964700513791
+      ],
+      "decided_alone": 16,
+      "decided_alone_share": 0.37209302325581395,
+      "alone_accuracy": 1.0,
+      "median_s": 16.5970237,
+      "mean_s": 11.548523176744185
+    },
+    {
+      "mode": "decision",
+      "threshold": 0.9,
+      "n": 43,
+      "accuracy": 0.8837209302325582,
+      "accuracy_ci95": [
+        0.755205511093586,
+        0.9492964700513791
+      ],
+      "decided_alone": 18,
+      "decided_alone_share": 0.4186046511627907,
+      "alone_accuracy": 1.0,
+      "median_s": 16.5733627,
+      "mean_s": 10.768615279069767
+    }
+  ],
+  "startup-d3lite_q4-cpu": {
+    "key": "d3lite_q4",
+    "device": "cpu",
+    "runs": [
+      {
+        "server_healthy_ms": 1267.7647,
+        "first_request_ms": 642.2507,
+        "second_request_ms": 616.9115,
+        "memory": {
+          "working_set_mb": 1043,
+          "private_mb": 4131
+        }
+      },
+      {
+        "server_healthy_ms": 1020.3193,
+        "first_request_ms": 499.1301,
+        "second_request_ms": 502.5572,
+        "memory": {
+          "working_set_mb": 1043,
+          "private_mb": 4130
+        }
+      },
+      {
+        "server_healthy_ms": 996.3986,
+        "first_request_ms": 525.8962,
+        "second_request_ms": 562.9507,
+        "memory": {
+          "working_set_mb": 1043,
+          "private_mb": 4131
+        }
+      }
+    ]
+  },
+  "idle-d3lite_q4-cpu-5min": {
+    "key": "d3lite_q4",
+    "device": "cpu",
+    "threads": 8,
+    "idle_minutes": 5,
+    "warm_ms": [
+      601.7594,
+      577.9964,
+      520.843,
+      581.8692,
+      583.3148,
+      618.4364,
+      534.3124,
+      600.0819,
+      586.6493,
+      587.137
+    ],
+    "memory_warm": {
+      "working_set_mb": 1045,
+      "private_mb": 4131
+    },
+    "idle_cpu_percent_of_one_core": 2.2,
+    "after_idle_ms": [
+      523.1339,
+      452.5684,
+      481.3107,
+      592.1647,
+      602.0264,
+      531.503,
+      592.0005,
+      500.2925,
+      554.276,
+      530.0626
+    ],
+    "memory_after_idle": {
+      "working_set_mb": 1045,
+      "private_mb": 4131
+    }
+  },
+  "load-d3lite_q4-with-8b": {
+    "8b_alone_median_tps": 12.0912,
+    "8b_during_median_tps": 9.5506,
+    "d3lite_alone_median_ms": 661.8274,
+    "d3lite_during_median_ms": 1069.4804,
+    "d3lite_during_p95_ms": 1126.0042
+  }
+}

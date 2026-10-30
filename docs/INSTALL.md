@@ -8,7 +8,17 @@ Each also accepts `doctor`, `repair`, `docker`, `logs`, and `stop`.
 Setup checks disk space, prevents concurrent environment changes, retries
 temporary network failures up to three times, and writes persistent failures
 to `.setup/install.log`. The `logs` action follows the active native or
-Docker logs rather than requiring Docker.
+Docker logs rather than requiring Docker. If the existing `.venv` has a Python
+that no longer starts (for example one built from an Anaconda that was later
+removed), the launcher moves it to `.setup/venv-broken-<time>` and builds a new
+one; nothing is deleted.
+
+Decision models (`/v1/systemone`) are optional. The `llamacpp` adapter needs no Python packages, only llama.cpp b11976
+or newer (`winget install ggml.llamacpp`, `brew install llama.cpp`, or a
+[release](https://github.com/ggml-org/llama.cpp/releases) with `LLAMACPP_SERVER_PATH` set to its `llama-server`); a
+model is a 0.6 to 2.4 GB GGUF made or downloaded on first use. The PyTorch adapters (`d1`, `laya`) need
+`python -m pip install -r requirements-decision.txt`, which takes about 4.5 GB with CUDA support and downloads
+2.2 to 5.9 GB per model. See [Decision models](API_OPTIONS.md#decision-models).
 
 From a clone:
 

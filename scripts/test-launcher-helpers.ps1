@@ -38,10 +38,32 @@ try {
   Remove-IncompleteVenv $scratch
   Assert-That (-not (Test-Path -LiteralPath (Join-Path $scratch ".venv"))) "a .venv without Python is removed"
 
+  # A working interpreter: copy cmd.exe and probe it with arguments it accepts.
   New-Item -ItemType Directory -Path (Join-Path $scratch ".venv\Scripts") -Force | Out-Null
-  Set-Content -LiteralPath (Join-Path $scratch ".venv\Scripts\python.exe") -Value "stub"
+  Copy-Item -LiteralPath (Join-Path $env:SystemRoot "System32\cmd.exe") -Destination (Join-Path $scratch ".venv\Scripts\python.exe")
+  $script:VenvProbeArguments = @("/c", "exit 0")
   Remove-IncompleteVenv $scratch
-  Assert-That (Test-Path -LiteralPath (Join-Path $scratch ".venv\Scripts\python.exe")) "a .venv with Python is left alone"
+  Assert-That (Test-Path -LiteralPath (Join-Path $scratch ".venv\Scripts\python.exe")) "a .venv whose Python runs is left alone"
+  Assert-That (@(Get-ChildItem -LiteralPath (Join-Path $scratch ".setup") -Directory -Filter "venv-broken-*" -ErrorAction SilentlyContinue).Count -eq 0) "a working .venv is not moved anywhere"
+
+  # A Python that exists but cannot start (here a text file; in real life a removed base interpreter).
+  Remove-Item -LiteralPath (Join-Path $scratch ".venv") -Recurse -Force
+  New-Item -ItemType Directory -Path (Join-Path $scratch ".venv\Scripts") -Force | Out-Null
+  Set-Content -LiteralPath (Join-Path $scratch ".venv\Scripts\python.exe") -Value "not an executable"
+  Remove-IncompleteVenv $scratch
+  Assert-That (-not (Test-Path -LiteralPath (Join-Path $scratch ".venv"))) "a .venv whose Python cannot run is moved out of the way"
+  $parked = @(Get-ChildItem -LiteralPath (Join-Path $scratch ".setup") -Directory -Filter "venv-broken-*")
+  Assert-That ($parked.Count -eq 1) "the broken .venv is kept under .setup, not deleted"
+  Assert-That (Test-Path -LiteralPath (Join-Path $parked[0].FullName "Scripts\python.exe")) "the parked venv still has its files"
+
+  # A Python that starts but exits non-zero (the 'No Python at ...' case: exit 103) is broken too.
+  New-Item -ItemType Directory -Path (Join-Path $scratch ".venv\Scripts") -Force | Out-Null
+  Copy-Item -LiteralPath (Join-Path $env:SystemRoot "System32\cmd.exe") -Destination (Join-Path $scratch ".venv\Scripts\python.exe")
+  $script:VenvProbeArguments = @("/c", "exit 103")
+  Remove-IncompleteVenv $scratch
+  Assert-That (-not (Test-Path -LiteralPath (Join-Path $scratch ".venv"))) "a Python that exits non-zero is treated as broken"
+  $parked = @(Get-ChildItem -LiteralPath (Join-Path $scratch ".setup") -Directory -Filter "venv-broken-*")
+  Assert-That ($parked.Count -eq 2) "each broken .venv is kept under its own name"
 
   Remove-IncompleteVenv (Join-Path $scratch "does-not-exist")
   Assert-That $true "a missing folder is a no-op"
@@ -49,3 +71,5 @@ try {
   Remove-Item -LiteralPath $scratch -Recurse -Force -ErrorAction SilentlyContinue
 }
 Write-Host "All launcher helper checks passed."
+# The probes above leave $LASTEXITCODE at 103 on purpose, and CI's PowerShell step exits with $LASTEXITCODE.
+exit 0

@@ -4,6 +4,23 @@ All notable changes to this project should be documented here.
 
 ## Unreleased
 
+- LocalDeploy can now serve **decision models** at `POST /v1/systemone`. A decision model does not write text: you
+  give it a piece of text and named questions ("is this chat or a task, and which route?") and it returns a typed
+  answer with a probability for every option. Applications can act on a confident answer and call a language model
+  only when it is not. The `llamacpp` adapter starts a `llama-server` for a GGUF file (no Python packages, no model
+  code) and answered in 0.6 to 0.7 s on a CPU with the vLLM Semantic Router `d3-lite` model; adapters for LiquidAI d1
+  and Laya (PyTorch, optional packages) and a loopback forwarder for any other `/v1/systemone` server are included.
+  Profiles are off by default. `docs/MODELS.md` compares 18 model and quantization choices on CPU and GPU on a routing
+  task, `scripts/decision_bench.py` reproduces it, and a profile's `"quantize": "Q4_K_M"` makes the faster file on
+  first use (`scripts/make_decision_gguf.py` does it ahead of time). `llama-server` is found on `PATH`, in a WinGet
+  install or at `LLAMACPP_SERVER_PATH`, and one too old to serve `/v1/systemone` is named with its build number.
+  See "Decision models" in `docs/API_OPTIONS.md`.
+- `benchmarks/decision-routing/` publishes the routing comparison: the labeled and held-out message sets, the raw result
+  of every run, the environment and model-file hashes, and `analyze.py`, which recomputes the intervals, the paired test
+  against an 8B LLM and a replay of YBM's routing modes from those files.
+- The launcher now notices a `.venv` whose Python no longer runs (for example one built from a removed Anaconda) and
+  rebuilds it, keeping the broken one under `.setup`. It used to check only that `python.exe` existed, so the server
+  failed with "No Python at ..." and every repair retried the dead interpreter.
 - Guided recommendations and automated comparisons now include the requested
   context length in the estimated memory budget. The download budget is also
   respected when even the first candidate is too large.

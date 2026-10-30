@@ -9,7 +9,7 @@ from urllib.parse import unquote
 
 
 ROOT = Path(__file__).resolve().parents[1]
-IGNORED_DIRS = {".git", ".venv", "build", "dist", "htmlcov", "node_modules"}
+IGNORED_DIRS = {".git", ".setup", ".venv", "build", "dist", "htmlcov", "node_modules"}
 
 
 def _markdown_files() -> list[Path]:

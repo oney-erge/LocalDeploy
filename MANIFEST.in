@@ -1,6 +1,6 @@
 include LICENSE README.md CHANGELOG.md SECURITY.md
 include config.example.json .env.example
-include requirements.txt
+include requirements.txt requirements-decision.txt
 recursive-include localdeploy/web *
 prune docs
 prune tests
