@@ -1,7 +1,7 @@
 # Decision models for routing an agent's messages
 
 Raw data, method and results of the comparison summarised in [docs/MODELS.md](../../docs/MODELS.md#decision-models)
-and in the article ["How a Decision Model Routes Agent Messages on a CPU"](https://oneyerge.com/writing/decision-model-message-routing/).
+and in the article ["Routing Agent Messages with a Local Decision Model"](https://oneyerge.com/writing/decision-model-message-routing/).
 
 ## The question
 
@@ -37,7 +37,7 @@ and the time. The metrics, computed by [scripts/decision_bench.py](../../scripts
 |---|---|
 | `runs/2026-10-28-pytorch/` | first runs: d1 and Laya through PyTorch, and the LLM on the 98 messages (an earlier scoring that did not read the status task type; superseded by `llm-main.json`) |
 | `runs/2026-10-29-comparison/` | 18 model and format choices on CPU and GPU, through llama.cpp, one run each |
-| `runs/2026-10-29-validation/` | repeats, held-out runs, start-up, idle and under-load tests, and the LLM on both sets |
+| `runs/2026-10-29-validation/` | repeats, held-out runs, start-up, idle and under-load tests, the LLM on both sets, and d3-lite on the GPU with the short wording (`*-bench.json`, written by `decision_bench.py`) |
 | `summary.csv` | one line per validation run |
 | `analysis.json` | intervals, paired tests and the routing-mode simulation |
 | `environment.md` | hardware, software versions and model files |
@@ -56,7 +56,7 @@ comparison is in [docs/MODELS.md](../../docs/MODELS.md#decision-models).
 |---|---|---:|---:|---:|---:|---:|---:|
 | Qwen3-VL 8B, the LLM (YBM's classifier) | GPU and CPU | 92% (85-96%) | 88% (76-95%) | 15.3 s | 17.3 s | 2 | 8.1 GB |
 | d3-lite 0.85B, short route wording | CPU | 93% (86-96%) | 84% (70-92%) | 0.53 s | 0.60 s | 0 | 1.0 GB |
-| d3-lite 0.85B, short route wording | GPU | not run | 88% (76-95%) | 0.04 s | 0.06 s | 0 | 1.2 GB |
+| d3-lite 0.85B, short route wording | GPU | 93% (86-96%) | 88% (76-95%) | 0.035 s | 0.05 s | 0 | 1.2 GB |
 | d3-nano 2.2B | CPU | 93% (86-96%) | 86% (73-93%) | 2.0 s | 2.2 s | 0 | 2.2 GB |
 | d3-mini 4.5B | CPU | 95% (89-98%) | 93% (81-98%) | 7.8 s | 9.4 s | 0 | 4.9 GB |
 | d3-mini 4.5B | GPU | 95% (89-98%) | 95% (85-99%) | 0.17 s | 0.19 s | 0 | 4.0 GB |

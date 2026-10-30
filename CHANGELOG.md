@@ -4,6 +4,9 @@ All notable changes to this project should be documented here.
 
 ## Unreleased
 
+- A decision profile with `"device": "cpu"` now starts llama-server with `--device none`. With a Vulkan or CUDA
+  build of llama.cpp (the WinGet package is Vulkan), `-ngl 0` alone still sent prompt work to the GPU: about 300 MB of
+  the chat model's GPU memory and about 10 s of shader compiling on the first request.
 - LocalDeploy can now serve **decision models** at `POST /v1/systemone`. A decision model does not write text: you
   give it a piece of text and named questions ("is this chat or a task, and which route?") and it returns a typed
   answer with a probability for every option. Applications can act on a confident answer and call a language model

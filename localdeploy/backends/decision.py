@@ -498,7 +498,10 @@ class LlamaCppAdapter(HttpAdapter):
             command += ["-t", str(int(profile["threads"]))]
         device = str(profile.get("device") or "auto").lower()
         if device == "cpu":
-            command += ["-ngl", "0"]
+            # -ngl 0 alone is not enough: a llama.cpp built with Vulkan or CUDA still hands large prompt batches to the
+            # GPU (taking about 300 MB of it and ~10 s to compile shaders on the first request). The point of a CPU
+            # decision model is to leave the GPU to the chat model, so no device is offered at all.
+            command += ["-ngl", "0", "--device", "none"]
         elif device == "cuda":
             command += ["-ngl", "99"]
         elif device != "auto":
