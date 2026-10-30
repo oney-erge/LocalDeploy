@@ -464,6 +464,7 @@ def test_llama_server_is_started_once_on_first_use_and_asked_for_the_decision(mo
     assert command[command.index("-m") + 1] == profile["model_id"]
     assert command[command.index("--host") + 1] == "127.0.0.1" and command[command.index("--port") + 1] == "18099"
     assert command[command.index("-t") + 1] == "6" and command[command.index("-ngl") + 1] == "0"
+    assert command[command.index("--device") + 1] == "none"  # a Vulkan or CUDA build would otherwise use the GPU
     assert "-b" in command and "-ub" in command  # the prompt is read in one batch
     assert sent["url"] == "http://127.0.0.1:18099/v1/systemone"
     assert "model" not in sent["body"]  # llama-server hosts exactly one model
@@ -474,6 +475,7 @@ def test_llama_server_gpu_and_huggingface_forms(monkeypatch, tmp_path, _llama) -
     command = adapter._command(adapter._server(), 18099)
     assert command[command.index("-hf") + 1] == "ggml-org/vllm-d3-lite-GGUF:Q8_0" and "-m" not in command
     assert command[command.index("-ngl") + 1] == "99" and "--offline" not in command
+    assert "--device" not in command  # the GPU profile keeps llama.cpp's own device choice
 
     monkeypatch.setattr(decision, "offline_mode", lambda: True)
     assert "--offline" in adapter._command(adapter._server(), 18099)

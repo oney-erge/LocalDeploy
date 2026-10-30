@@ -137,7 +137,7 @@ require `"trust_remote_code": true` and a pinned `"revision"`; the shipped profi
 
 | `adapter` | Runs | Notes |
 |---|---|---|
-| `llamacpp` | A GGUF decision model in a `llama-server` that LocalDeploy starts, on a free loopback port, restarts if it dies and stops on exit | `model_id` is a `.gguf` path, `repo:quant`, or a repository with `quantize`; `device` `cpu`, `cuda` or `auto`; `threads`, `context`, `batch`, `server_path`, `port` |
+| `llamacpp` | A GGUF decision model in a `llama-server` that LocalDeploy starts, on a free loopback port, restarts if it dies and stops on exit | `model_id` is a `.gguf` path, `repo:quant`, or a repository with `quantize`; `device` `cpu` (no GPU at all, even with a Vulkan or CUDA build of llama.cpp), `cuda` or `auto`; `threads`, `context`, `batch`, `server_path`, `port` |
 | `d1` | LiquidAI d1 (`d1-omni-600M`, `d1-3B`) in this process through PyTorch | `device`: `auto`, `cpu` or `cuda`; `dtype` as the model card advises |
 | `laya` | Laya checkpoints (`english`, `multilingual`, `typed-decisions`) in this process | Apache-2.0; `checkpoint` picks one |
 | `systemone-http` | Forwards to another server on this machine that already speaks `/v1/systemone` | Loopback `base_url` only; no extra packages |
