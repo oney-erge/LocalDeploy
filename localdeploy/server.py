@@ -20,6 +20,7 @@ from pydantic import BaseModel, Field
 
 import localdeploy
 from localdeploy.backends import decision
+from localdeploy.backends import llamacpp_managed
 from localdeploy.backends.llamacpp import call_llamacpp, llama_health
 from localdeploy.backends.ollama import (
     call_ollama_detailed,
@@ -1359,6 +1360,7 @@ def health() -> Dict[str, Any]:
             "error": ollama_error,
         },
         "llamacpp": llama_status,
+        "managed_llamacpp": llamacpp_managed.status(),
         "decision": {"loaded": decision.status()},
         "limits": get_global_limits(),
     }

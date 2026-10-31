@@ -6,6 +6,7 @@ from typing import Any, Dict, List
 
 import requests
 
+from . import llamacpp_managed
 from ..utils import (
     BackendCallError,
     get_backend_base_url,
@@ -48,7 +49,11 @@ def call_llamacpp(prepared: Dict[str, Any]) -> str:
     if not gguf_path_exists(model_id):
         raise BackendCallError(f"GGUF file path not found: {model_id}. Update config.json or start the matching local llama-server.")
 
-    base_url = get_backend_base_url(profile, "llamacpp")
+    if llamacpp_managed.is_managed(profile):
+        # LocalDeploy starts (or switches to) this profile's llama-server itself and forwards to it.
+        base_url = llamacpp_managed.ensure(str(profile.get("name") or prepared.get("profile_name") or "managed"), profile)
+    else:
+        base_url = get_backend_base_url(profile, "llamacpp")
     messages: List[Dict[str, str]] = []
     if prepared["system_prompt"]:
         messages.append({"role": "system", "content": prepared["system_prompt"]})
