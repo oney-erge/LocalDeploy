@@ -204,6 +204,11 @@ if ($profile.mmap -eq $false) {
 if ($profile.mlock -eq $true) {
     $args.Add("--mlock")
 }
+# Flags that have no field of their own, one array item per argument: "--reasoning", "off" for a thinking model,
+# "--n-cpu-moe", "30" to keep a mixture-of-experts model's experts in RAM, "-fitt", "1024" to leave VRAM free.
+foreach ($extra in @($profile.server_args)) {
+    if ($null -ne $extra -and "$extra" -ne "") { $args.Add([string]$extra) }
+}
 
 Write-Step "Starting llama.cpp server using $modelPath"
 $process = Start-Process `

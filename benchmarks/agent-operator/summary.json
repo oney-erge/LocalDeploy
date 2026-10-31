@@ -1,0 +1,885 @@
+[
+ {
+  "name": "qwen3.6-35b-a3b",
+  "gguf": "Qwen3.6-35B-A3B-UD-Q4_K_M.gguf",
+  "args": [
+   "-fa",
+   "on",
+   "-ctk",
+   "q8_0",
+   "-ctv",
+   "q8_0",
+   "--reasoning",
+   "off",
+   "-np",
+   "1",
+   "-fitt",
+   "1024"
+  ],
+  "load_s": 13.6,
+  "vram_mib": 6733,
+  "aborted": null,
+  "steps": 120,
+  "pass": {
+   "successes": 69,
+   "of": 120
+  },
+  "parsed": {
+   "successes": 120,
+   "of": 120
+  },
+  "valid_call": {
+   "successes": 59,
+   "of": 61
+  },
+  "grounded_call": {
+   "successes": 57,
+   "of": 61
+  },
+  "agrees_on_good": {
+   "successes": 42,
+   "of": 72
+  },
+  "avoids_on_bad": {
+   "successes": 29,
+   "of": 48
+  },
+  "median_s": 17.905,
+  "p95_s": 57.2,
+  "decode_tps": 19.7
+ },
+ {
+  "name": "qwen3.5-9b",
+  "gguf": "Qwen3.5-9B-Q4_K_M.gguf",
+  "args": [
+   "-fa",
+   "on",
+   "-ctk",
+   "q8_0",
+   "-ctv",
+   "q8_0",
+   "--reasoning",
+   "off",
+   "-np",
+   "1",
+   "-fitt",
+   "1024"
+  ],
+  "load_s": 7.6,
+  "vram_mib": 5613,
+  "aborted": null,
+  "steps": 599,
+  "pass": {
+   "successes": 329,
+   "of": 599
+  },
+  "parsed": {
+   "successes": 599,
+   "of": 599
+  },
+  "valid_call": {
+   "successes": 417,
+   "of": 444
+  },
+  "grounded_call": {
+   "successes": 407,
+   "of": 444
+  },
+  "agrees_on_good": {
+   "successes": 220,
+   "of": 418
+  },
+  "avoids_on_bad": {
+   "successes": 124,
+   "of": 181
+  },
+  "median_s": 3.725,
+  "p95_s": 13.98,
+  "decode_tps": 39.3
+ },
+ {
+  "name": "qwen3.5-4b",
+  "gguf": "Qwen3.5-4B-Q4_K_M.gguf",
+  "args": [
+   "-fa",
+   "on",
+   "-ctk",
+   "q8_0",
+   "-ctv",
+   "q8_0",
+   "--reasoning",
+   "off",
+   "-np",
+   "1",
+   "-fitt",
+   "1024"
+  ],
+  "load_s": 5.6,
+  "vram_mib": 3185,
+  "aborted": null,
+  "steps": 599,
+  "pass": {
+   "successes": 308,
+   "of": 599
+  },
+  "parsed": {
+   "successes": 599,
+   "of": 599
+  },
+  "valid_call": {
+   "successes": 307,
+   "of": 326
+  },
+  "grounded_call": {
+   "successes": 316,
+   "of": 326
+  },
+  "agrees_on_good": {
+   "successes": 207,
+   "of": 418
+  },
+  "avoids_on_bad": {
+   "successes": 113,
+   "of": 181
+  },
+  "median_s": 2.085,
+  "p95_s": 5.98,
+  "decode_tps": 70.5
+ },
+ {
+  "name": "gemma-4-12b",
+  "gguf": "gemma-4-12b-it-Q4_K_M.gguf",
+  "args": [
+   "-fa",
+   "on",
+   "-ctk",
+   "q8_0",
+   "-ctv",
+   "q8_0",
+   "--reasoning",
+   "off",
+   "-np",
+   "1",
+   "-fitt",
+   "1024"
+  ],
+  "load_s": 12.7,
+  "vram_mib": 6491,
+  "aborted": null,
+  "steps": 120,
+  "pass": {
+   "successes": 60,
+   "of": 120
+  },
+  "parsed": {
+   "successes": 120,
+   "of": 120
+  },
+  "valid_call": {
+   "successes": 73,
+   "of": 82
+  },
+  "grounded_call": {
+   "successes": 82,
+   "of": 82
+  },
+  "agrees_on_good": {
+   "successes": 36,
+   "of": 72
+  },
+  "avoids_on_bad": {
+   "successes": 28,
+   "of": 48
+  },
+  "median_s": 11.085,
+  "p95_s": 29.5,
+  "decode_tps": 13.8
+ },
+ {
+  "name": "gemma-4-26b-a4b (experts in RAM: 24 layers)",
+  "gguf": "gemma-4-26B-A4B-it-UD-Q4_K_M.gguf",
+  "args": [
+   "-fa",
+   "on",
+   "-ctk",
+   "q8_0",
+   "-ctv",
+   "q8_0",
+   "--reasoning",
+   "off",
+   "-np",
+   "1",
+   "-fitt",
+   "1024",
+   "--n-cpu-moe",
+   "24"
+  ],
+  "load_s": 6.6,
+  "vram_mib": 6295,
+  "aborted": null,
+  "steps": 12,
+  "pass": {
+   "successes": 6,
+   "of": 12
+  },
+  "parsed": {
+   "successes": 12,
+   "of": 12
+  },
+  "valid_call": {
+   "successes": 7,
+   "of": 7
+  },
+  "grounded_call": {
+   "successes": 7,
+   "of": 7
+  },
+  "agrees_on_good": {
+   "successes": 4,
+   "of": 6
+  },
+  "avoids_on_bad": {
+   "successes": 2,
+   "of": 6
+  },
+  "median_s": 20.265,
+  "p95_s": 26.06,
+  "decode_tps": 16.8
+ },
+ {
+  "name": "gemma-4-26b-a4b (experts in RAM: 99 layers)",
+  "gguf": "gemma-4-26B-A4B-it-UD-Q4_K_M.gguf",
+  "args": [
+   "-fa",
+   "on",
+   "-ctk",
+   "q8_0",
+   "-ctv",
+   "q8_0",
+   "--reasoning",
+   "off",
+   "-np",
+   "1",
+   "-fitt",
+   "1024",
+   "--n-cpu-moe",
+   "99"
+  ],
+  "load_s": 4.6,
+  "vram_mib": 3467,
+  "aborted": null,
+  "steps": 12,
+  "pass": {
+   "successes": 6,
+   "of": 12
+  },
+  "parsed": {
+   "successes": 12,
+   "of": 12
+  },
+  "valid_call": {
+   "successes": 7,
+   "of": 7
+  },
+  "grounded_call": {
+   "successes": 7,
+   "of": 7
+  },
+  "agrees_on_good": {
+   "successes": 4,
+   "of": 6
+  },
+  "avoids_on_bad": {
+   "successes": 2,
+   "of": 6
+  },
+  "median_s": 24.634999999999998,
+  "p95_s": 31.17,
+  "decode_tps": 14.1
+ },
+ {
+  "name": "gemma-4-26b-a4b",
+  "gguf": "gemma-4-26B-A4B-it-UD-Q4_K_M.gguf",
+  "args": [
+   "-fa",
+   "on",
+   "-ctk",
+   "q8_0",
+   "-ctv",
+   "q8_0",
+   "--reasoning",
+   "off",
+   "-np",
+   "1",
+   "-fitt",
+   "1024"
+  ],
+  "load_s": 14.6,
+  "vram_mib": 6675,
+  "aborted": null,
+  "steps": 120,
+  "pass": {
+   "successes": 60,
+   "of": 120
+  },
+  "parsed": {
+   "successes": 120,
+   "of": 120
+  },
+  "valid_call": {
+   "successes": 77,
+   "of": 85
+  },
+  "grounded_call": {
+   "successes": 84,
+   "of": 85
+  },
+  "agrees_on_good": {
+   "successes": 34,
+   "of": 72
+  },
+  "avoids_on_bad": {
+   "successes": 29,
+   "of": 48
+  },
+  "median_s": 15.17,
+  "p95_s": 48.27,
+  "decode_tps": 17.0
+ },
+ {
+  "name": "gpt-oss-20b (experts in RAM: 12 layers)",
+  "gguf": "gpt-oss-20b-Q4_K_M.gguf",
+  "args": [
+   "-fa",
+   "on",
+   "-ctk",
+   "q8_0",
+   "-ctv",
+   "q8_0",
+   "--reasoning",
+   "off",
+   "-np",
+   "1",
+   "-fitt",
+   "1024",
+   "--n-cpu-moe",
+   "12"
+  ],
+  "load_s": 5.5,
+  "vram_mib": 6330,
+  "aborted": null,
+  "steps": 12,
+  "pass": {
+   "successes": 6,
+   "of": 12
+  },
+  "parsed": {
+   "successes": 12,
+   "of": 12
+  },
+  "valid_call": {
+   "successes": 8,
+   "of": 9
+  },
+  "grounded_call": {
+   "successes": 9,
+   "of": 9
+  },
+  "agrees_on_good": {
+   "successes": 3,
+   "of": 6
+  },
+  "avoids_on_bad": {
+   "successes": 3,
+   "of": 6
+  },
+  "median_s": 28.060000000000002,
+  "p95_s": 59.34,
+  "decode_tps": 19.5
+ },
+ {
+  "name": "gemma-4-e4b",
+  "gguf": "gemma-4-E4B-it-Q4_K_M.gguf",
+  "args": [
+   "-fa",
+   "on",
+   "-ctk",
+   "q8_0",
+   "-ctv",
+   "q8_0",
+   "--reasoning",
+   "off",
+   "-np",
+   "1",
+   "-fitt",
+   "1024"
+  ],
+  "load_s": 11.6,
+  "vram_mib": 3668,
+  "aborted": null,
+  "steps": 120,
+  "pass": {
+   "successes": 59,
+   "of": 120
+  },
+  "parsed": {
+   "successes": 120,
+   "of": 120
+  },
+  "valid_call": {
+   "successes": 55,
+   "of": 60
+  },
+  "grounded_call": {
+   "successes": 57,
+   "of": 60
+  },
+  "agrees_on_good": {
+   "successes": 31,
+   "of": 72
+  },
+  "avoids_on_bad": {
+   "successes": 32,
+   "of": 48
+  },
+  "median_s": 2.6950000000000003,
+  "p95_s": 6.58,
+  "decode_tps": 60.8
+ },
+ {
+  "name": "qwen3-vl-8b",
+  "gguf": "Qwen3-VL-8B-Instruct-Q4_K_M.gguf",
+  "args": [
+   "-fa",
+   "on",
+   "-ctk",
+   "q8_0",
+   "-ctv",
+   "q8_0",
+   "--reasoning",
+   "off",
+   "-np",
+   "1",
+   "-fitt",
+   "1024"
+  ],
+  "load_s": 9.1,
+  "vram_mib": 6185,
+  "aborted": null,
+  "steps": 599,
+  "pass": {
+   "successes": 291,
+   "of": 599
+  },
+  "parsed": {
+   "successes": 599,
+   "of": 599
+  },
+  "valid_call": {
+   "successes": 333,
+   "of": 350
+  },
+  "grounded_call": {
+   "successes": 334,
+   "of": 350
+  },
+  "agrees_on_good": {
+   "successes": 195,
+   "of": 418
+  },
+  "avoids_on_bad": {
+   "successes": 106,
+   "of": 181
+  },
+  "median_s": 2.6950000000000003,
+  "p95_s": 8.28,
+  "decode_tps": 47.3
+ },
+ {
+  "name": "today (LocalDeploy and Ollama, 16K)",
+  "gguf": null,
+  "args": null,
+  "load_s": null,
+  "vram_mib": null,
+  "aborted": null,
+  "steps": 60,
+  "pass": {
+   "successes": 29,
+   "of": 60
+  },
+  "parsed": {
+   "successes": 60,
+   "of": 60
+  },
+  "valid_call": {
+   "successes": 31,
+   "of": 32
+  },
+  "grounded_call": {
+   "successes": 30,
+   "of": 32
+  },
+  "agrees_on_good": {
+   "successes": 21,
+   "of": 40
+  },
+  "avoids_on_bad": {
+   "successes": 8,
+   "of": 20
+  },
+  "median_s": 13.355,
+  "p95_s": 60.3,
+  "decode_tps": null
+ },
+ {
+  "name": "qwen3.5-9b (thinking 768-token budget)",
+  "gguf": "Qwen3.5-9B-Q4_K_M.gguf",
+  "args": [
+   "-fa",
+   "on",
+   "-ctk",
+   "q8_0",
+   "-ctv",
+   "q8_0",
+   "--reasoning",
+   "on",
+   "-np",
+   "1",
+   "-fitt",
+   "1024",
+   "--reasoning-budget",
+   "768"
+  ],
+  "load_s": 4.6,
+  "vram_mib": 5616,
+  "aborted": null,
+  "steps": 60,
+  "pass": {
+   "successes": 27,
+   "of": 60
+  },
+  "parsed": {
+   "successes": 58,
+   "of": 60
+  },
+  "valid_call": {
+   "successes": 28,
+   "of": 30
+  },
+  "grounded_call": {
+   "successes": 27,
+   "of": 30
+  },
+  "agrees_on_good": {
+   "successes": 19,
+   "of": 39
+  },
+  "avoids_on_bad": {
+   "successes": 9,
+   "of": 19
+  },
+  "median_s": 16.32,
+  "p95_s": 41.0,
+  "decode_tps": 30.4
+ },
+ {
+  "name": "glm-4.6v-flash",
+  "gguf": "GLM-4.6V-Flash-Q4_K_M.gguf",
+  "args": [
+   "-fa",
+   "on",
+   "-ctk",
+   "q8_0",
+   "-ctv",
+   "q8_0",
+   "--reasoning",
+   "off",
+   "-np",
+   "1",
+   "-fitt",
+   "1024"
+  ],
+  "load_s": 9.6,
+  "vram_mib": 6050,
+  "aborted": null,
+  "steps": 120,
+  "pass": {
+   "successes": 51,
+   "of": 120
+  },
+  "parsed": {
+   "successes": 120,
+   "of": 120
+  },
+  "valid_call": {
+   "successes": 60,
+   "of": 68
+  },
+  "grounded_call": {
+   "successes": 47,
+   "of": 68
+  },
+  "agrees_on_good": {
+   "successes": 33,
+   "of": 72
+  },
+  "avoids_on_bad": {
+   "successes": 31,
+   "of": 48
+  },
+  "median_s": 3.12,
+  "p95_s": 7.66,
+  "decode_tps": 40.1
+ },
+ {
+  "name": "gpt-oss-20b (experts in RAM: 20 layers)",
+  "gguf": "gpt-oss-20b-Q4_K_M.gguf",
+  "args": [
+   "-fa",
+   "on",
+   "-ctk",
+   "q8_0",
+   "-ctv",
+   "q8_0",
+   "--reasoning",
+   "off",
+   "-np",
+   "1",
+   "-fitt",
+   "1024",
+   "--n-cpu-moe",
+   "20"
+  ],
+  "load_s": 3.6,
+  "vram_mib": 3176,
+  "aborted": "median 41s over the first 8 steps exceeds 40s",
+  "steps": 8,
+  "pass": {
+   "successes": 3,
+   "of": 8
+  },
+  "parsed": {
+   "successes": 8,
+   "of": 8
+  },
+  "valid_call": {
+   "successes": 5,
+   "of": 5
+  },
+  "grounded_call": {
+   "successes": 5,
+   "of": 5
+  },
+  "agrees_on_good": {
+   "successes": 1,
+   "of": 3
+  },
+  "avoids_on_bad": {
+   "successes": 2,
+   "of": 5
+  },
+  "median_s": 41.22,
+  "p95_s": 59.02,
+  "decode_tps": 12.8
+ },
+ {
+  "name": "gpt-oss-20b",
+  "gguf": "gpt-oss-20b-Q4_K_M.gguf",
+  "args": [
+   "-fa",
+   "on",
+   "-ctk",
+   "q8_0",
+   "-ctv",
+   "q8_0",
+   "--reasoning",
+   "off",
+   "-np",
+   "1",
+   "-fitt",
+   "1024"
+  ],
+  "load_s": 12.6,
+  "vram_mib": 5743,
+  "aborted": "median 46s over the first 8 steps exceeds 40s",
+  "steps": 8,
+  "pass": {
+   "successes": 3,
+   "of": 8
+  },
+  "parsed": {
+   "successes": 8,
+   "of": 8
+  },
+  "valid_call": {
+   "successes": 5,
+   "of": 5
+  },
+  "grounded_call": {
+   "successes": 5,
+   "of": 5
+  },
+  "agrees_on_good": {
+   "successes": 1,
+   "of": 3
+  },
+  "avoids_on_bad": {
+   "successes": 2,
+   "of": 5
+  },
+  "median_s": 45.875,
+  "p95_s": 55.3,
+  "decode_tps": 10.9
+ },
+ {
+  "name": "qwen3.6-35b-a3b (experts in RAM: 30 layers)",
+  "gguf": "Qwen3.6-35B-A3B-UD-Q4_K_M.gguf",
+  "args": [
+   "-fa",
+   "on",
+   "-ctk",
+   "q8_0",
+   "-ctv",
+   "q8_0",
+   "--reasoning",
+   "off",
+   "-np",
+   "1",
+   "-fitt",
+   "1024",
+   "--n-cpu-moe",
+   "30"
+  ],
+  "load_s": 5.6,
+  "vram_mib": 6728,
+  "aborted": null,
+  "steps": 12,
+  "pass": {
+   "successes": 4,
+   "of": 12
+  },
+  "parsed": {
+   "successes": 12,
+   "of": 12
+  },
+  "valid_call": {
+   "successes": 7,
+   "of": 7
+  },
+  "grounded_call": {
+   "successes": 7,
+   "of": 7
+  },
+  "agrees_on_good": {
+   "successes": 2,
+   "of": 6
+  },
+  "avoids_on_bad": {
+   "successes": 2,
+   "of": 6
+  },
+  "median_s": 19.475,
+  "p95_s": 31.61,
+  "decode_tps": 17.0
+ },
+ {
+  "name": "qwen3.6-35b-a3b (experts in RAM: 99 layers)",
+  "gguf": "Qwen3.6-35B-A3B-UD-Q4_K_M.gguf",
+  "args": [
+   "-fa",
+   "on",
+   "-ctk",
+   "q8_0",
+   "-ctv",
+   "q8_0",
+   "--reasoning",
+   "off",
+   "-np",
+   "1",
+   "-fitt",
+   "1024",
+   "--n-cpu-moe",
+   "99"
+  ],
+  "load_s": 3.6,
+  "vram_mib": 2785,
+  "aborted": null,
+  "steps": 12,
+  "pass": {
+   "successes": 4,
+   "of": 12
+  },
+  "parsed": {
+   "successes": 12,
+   "of": 12
+  },
+  "valid_call": {
+   "successes": 7,
+   "of": 7
+  },
+  "grounded_call": {
+   "successes": 7,
+   "of": 7
+  },
+  "agrees_on_good": {
+   "successes": 2,
+   "of": 6
+  },
+  "avoids_on_bad": {
+   "successes": 2,
+   "of": 6
+  },
+  "median_s": 22.92,
+  "p95_s": 42.89,
+  "decode_tps": 16.6
+ },
+ {
+  "name": "qwen3.6-27b",
+  "gguf": "Qwen3.6-27B-Q4_K_S.gguf",
+  "args": [
+   "-fa",
+   "on",
+   "-ctk",
+   "q8_0",
+   "-ctv",
+   "q8_0",
+   "--reasoning",
+   "off",
+   "-np",
+   "1",
+   "-fitt",
+   "1024"
+  ],
+  "load_s": 16.7,
+  "vram_mib": 6295,
+  "aborted": "median 113s over the first 8 steps exceeds 40s",
+  "steps": 8,
+  "pass": {
+   "successes": 1,
+   "of": 8
+  },
+  "parsed": {
+   "successes": 8,
+   "of": 8
+  },
+  "valid_call": {
+   "successes": 2,
+   "of": 2
+  },
+  "grounded_call": {
+   "successes": 2,
+   "of": 2
+  },
+  "agrees_on_good": {
+   "successes": 1,
+   "of": 3
+  },
+  "avoids_on_bad": {
+   "successes": 0,
+   "of": 5
+  },
+  "median_s": 113.41499999999999,
+  "p95_s": 184.66,
+  "decode_tps": 2.1
+ }
+]

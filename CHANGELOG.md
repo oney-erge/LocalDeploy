@@ -4,6 +4,13 @@ All notable changes to this project should be documented here.
 
 ## Unreleased
 
+- `benchmarks/agent-operator/` publishes a model comparison for agent work: 599 decisions a real YBM install had made,
+  replayed against Qwen3.5 9B and 4B, Qwen3-VL 8B, Qwen3.6, Gemma 4, GLM-4.6V-Flash and gpt-oss-20b, with the settings, model
+  checksums and a paired test. The same Qwen3-VL 8B was about five times faster through `llama-server` than through Ollama
+  (2.8 s against 13.4 s per step). `docs/MODELS.md` has the short version and `config.example.json` gains disabled
+  `qwen35_9b_llamacpp` and `qwen3vl_8b_llamacpp` profiles.
+- A profile can set `server_args`, a list of extra `llama-server` flags (for example `"--reasoning", "off"` for a thinking
+  model, or `"--n-cpu-moe", "30"` to keep a mixture-of-experts model's experts in RAM). The profile editor accepts the field.
 - `scripts/stop.ps1` and a restart through `scripts/start.ps1` stop the process in `logs\api_server.pid` or
   `logs\llama_server.pid` only while that PID still runs the API server or llama-server. A PID file outlives a server
   that was killed some other way, and Windows reuses PIDs, so the old scripts could force-stop an unrelated program.

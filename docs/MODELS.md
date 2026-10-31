@@ -38,6 +38,27 @@ The useful conclusions from this run are fairly narrow:
 
 The hard JSON category contains four nested schema tasks: intent classification, plan construction, an approval decision with conditional fields, and multi-task extraction. It was added because the simpler JSON tests did not separate the models well.
 
+## Models for an agent (October 2026)
+
+The July table above ranks general ability, and its first-place model still made up file names and job ids when it
+ran YBM's agent loop. A second benchmark replays the decisions a real YBM install made and scores whether each new
+choice is valid, uses only things the model was shown, and matches a step that went well. Short version, same laptop,
+Q4_K_M, 16K context:
+
+| Model, as run | Pass | Seconds per step | VRAM |
+|---|---:|---:|---:|
+| Qwen3.5-9B, `llama-server` | 55% | 3.7 | 5.6 GB |
+| Qwen3.5-4B, `llama-server` | 51% | 2.1 | 3.2 GB |
+| Qwen3-VL 8B, `llama-server` | 49% | 2.7 | 6.2 GB |
+| Qwen3-VL 8B, Ollama through LocalDeploy (the `qwen3vl_8b_ollama` profile) | 48% | 13.4 | |
+| Qwen3.6-35B-A3B, experts in RAM | 57% | 17.9 | 6.7 GB |
+
+The runtime made the biggest difference: the same Qwen3-VL 8B was about five times faster through `llama-server` than
+through Ollama, with the same pass rate. Larger models, thinking mode, and the Gemma 4, GLM and gpt-oss models did
+not beat the small Qwen models. `config.example.json` has disabled `qwen35_9b_llamacpp` and `qwen3vl_8b_llamacpp`
+profiles; a profile's `server_args` list passes flags such as `--reasoning off` to `llama-server`. Method, all results,
+checksums and what is not yet proven: [benchmarks/agent-operator](../benchmarks/agent-operator/README.md).
+
 ### Reproduce the run
 
 Pull the models you want to compare and make sure their profiles are enabled in `config.json`. Then start the server and run the benchmark:

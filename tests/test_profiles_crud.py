@@ -93,6 +93,15 @@ def test_upsert_edits_existing_and_ignores_structural_fields(live_config):
     assert saved["backend"] == "ollama"
 
 
+def test_upsert_can_set_extra_llama_server_flags(live_config):
+    client.post("/profiles/upsert", json={"model_id": "qwen3:8b"})
+    client.post(
+        "/profiles/upsert",
+        json={"profile": "qwen3_8b", "fields": {"server_args": ["--reasoning", "off", "-np", "1"]}},
+    )
+    assert _read(live_config)["profiles"]["qwen3_8b"]["server_args"] == ["--reasoning", "off", "-np", "1"]
+
+
 def test_upsert_same_model_twice_reuses_profile(live_config):
     a = client.post("/profiles/upsert", json={"model_id": "llama3.1:8b"}).json()
     b = client.post("/profiles/upsert", json={"model_id": "llama3.1:8b"}).json()
