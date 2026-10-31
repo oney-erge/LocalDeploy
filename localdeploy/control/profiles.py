@@ -48,6 +48,7 @@ _EDITABLE_FIELDS = {
     "threads",
     "mmap",
     "mlock",
+    "server_args",
 }
 
 

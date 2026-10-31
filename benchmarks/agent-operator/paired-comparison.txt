@@ -1,0 +1,20 @@
+
+overall pass
+  qwen3-vl-8b vs qwen3.5-4b: n=599  qwen3-vl-8b only 52, qwen3.5-4b only 69, both 239  p=0.145
+  qwen3-vl-8b vs qwen3.5-9b: n=599  qwen3-vl-8b only 46, qwen3.5-9b only 84, both 245  p=0.001
+  qwen3.5-4b vs qwen3.5-9b: n=599  qwen3.5-4b only 44, qwen3.5-9b only 65, both 264  p=0.055
+
+avoids repeating a bad step (bad-labeled steps)
+  qwen3-vl-8b vs qwen3.5-4b: n=181  qwen3-vl-8b only 12, qwen3.5-4b only 19, both 94  p=0.281
+  qwen3-vl-8b vs qwen3.5-9b: n=181  qwen3-vl-8b only 12, qwen3.5-9b only 30, both 94  p=0.008
+  qwen3.5-4b vs qwen3.5-9b: n=181  qwen3.5-4b only 8, qwen3.5-9b only 19, both 105  p=0.052
+
+same choice as a good step (good-labeled steps)
+  qwen3-vl-8b vs qwen3.5-4b: n=418  qwen3-vl-8b only 42, qwen3.5-4b only 54, both 153  p=0.261
+  qwen3-vl-8b vs qwen3.5-9b: n=418  qwen3-vl-8b only 28, qwen3.5-9b only 53, both 167  p=0.007
+  qwen3.5-4b vs qwen3.5-9b: n=418  qwen3.5-4b only 29, qwen3.5-9b only 42, both 178  p=0.154
+
+no made-up references (tool calls only)
+  qwen3-vl-8b vs qwen3.5-4b: n=296  qwen3-vl-8b only 3, qwen3.5-4b only 8, both 282  p=0.227
+  qwen3-vl-8b vs qwen3.5-9b: n=313  qwen3-vl-8b only 13, qwen3.5-9b only 1, both 284  p=0.002
+  qwen3.5-4b vs qwen3.5-9b: n=305  qwen3.5-4b only 21, qwen3.5-9b only 2, both 274  p=0.000
