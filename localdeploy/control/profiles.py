@@ -49,6 +49,9 @@ _EDITABLE_FIELDS = {
     "mmap",
     "mlock",
     "server_args",
+    "managed",
+    "idle_stop_seconds",
+    "startup_timeout_seconds",
 }
 
 

@@ -108,6 +108,9 @@ Get-Process "llama-server" -ErrorAction SilentlyContinue | ForEach-Object {
     Write-Step "Stopped llama.cpp server (PID: $($_.Id))"
 }
 
+# Servers LocalDeploy started itself (managed chat models, decision models) leave a pid file; it is stale once they are stopped.
+Remove-Item -Path ".\logs\chat-llamacpp.pid", ".\logs\decision-*.pid" -Force -ErrorAction SilentlyContinue
+
 if ($StopOllama) {
     Get-Process "ollama" -ErrorAction SilentlyContinue | ForEach-Object {
         Stop-Process -Id $_.Id -Force -ErrorAction SilentlyContinue

@@ -115,13 +115,14 @@ function Resolve-LlamaProfile {
     $defaultProfile = Env-Value -EnvFile $EnvFile -Name "DEFAULT_MODEL_PROFILE" -Default $Config.default_profile
     if ($defaultProfile -and $Config.profiles.PSObject.Properties.Name -contains $defaultProfile) {
         $profile = $Config.profiles.$defaultProfile
-        if ($profile.backend -eq "llamacpp" -and $profile.enabled) {
+        # A "managed" profile is started by LocalDeploy itself on its first request; launching it here too would load the model twice.
+        if ($profile.backend -eq "llamacpp" -and $profile.enabled -and -not $profile.managed) {
             return $profile
         }
     }
     foreach ($property in $Config.profiles.PSObject.Properties) {
         $profile = $property.Value
-        if ($profile.backend -eq "llamacpp" -and $profile.enabled) {
+        if ($profile.backend -eq "llamacpp" -and $profile.enabled -and -not $profile.managed) {
             return $profile
         }
     }
