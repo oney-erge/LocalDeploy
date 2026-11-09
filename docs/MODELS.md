@@ -43,7 +43,13 @@ The hard JSON category contains four nested schema tasks: intent classification,
 The July table above ranks general ability, and its first-place model still made up file names and job ids when it
 ran YBM's agent loop. A second benchmark replays the decisions a real YBM install made and scores whether each new
 choice is valid, uses only things the model was shown, and matches a step that went well. Short version, same laptop,
-Q4_K_M, 16K context:
+Q4_K_M, 16K context.
+
+**Correction (8 November 2026):** this table was measured on prompts that had been stored cut to 8,000 characters, about
+half their real length, so the models did not see the whole request. Re-run on full prompts, Qwen3.5-9B and Qwen3-VL 8B were
+not clearly different on the strict score (49% against 44%), the seconds per step were about twice those below (7.8 and
+6.8), and none of these percentages is the model's accuracy (see
+[benchmarks/agent-operator](../benchmarks/agent-operator/README.md)). Treat the table as a rough speed and memory guide only.
 
 | Model, as run | Pass | Seconds per step | VRAM |
 |---|---:|---:|---:|
