@@ -4,6 +4,10 @@ All notable changes to this project should be documented here.
 
 ## Unreleased
 
+- Corrected `benchmarks/agent-operator` and the matching section of `docs/MODELS.md`. They had been measured on prompts YBM stores
+  cut to 8,000 characters (the real ones are about 17,000), so the models did not see the whole request. Re-run on full prompts,
+  Qwen3.5-9B and Qwen3-VL 8B are not clearly different on the strict score (49% against 44%), steps take about twice as long as
+  first reported, and none of the percentages is the model's accuracy. The corrected numbers are in `summary-full-prompts.json`.
 - A `llamacpp` profile with `"managed": true` is run by LocalDeploy itself: the first request starts `llama-server` on a free
   local port, one managed chat model stays loaded and asking for another switches, and it stops when LocalDeploy does (or
   after `idle_stop_seconds`). The profile's `server_args`, context, flash attention, KV cache and GPU-layer fields become

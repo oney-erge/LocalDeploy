@@ -1,5 +1,28 @@
 # Choosing a local model for an agent (October 2026)
 
+> **Correction, 8 November 2026.** The results on this page were measured on prompts that YBM had stored cut to their first
+> 8,000 characters; a real Operator prompt is about 17,000. The older steps lost the end of the tool list, and the 95 newer
+> ones lost the request and the history altogether, so the models were answering without seeing what they were asked. I
+> rebuilt every prompt in full from the stored task history and re-ran 72 of the steps
+> ([summary-full-prompts.json](summary-full-prompts.json)). What changed:
+>
+> - **The percentages below are not the models' accuracy, and the full prompts did not change that.** Qwen3.5-9B scored 49% on
+>   the full prompts (it was 52% on the truncated ones). The score counts a step as right only if the model picks the same
+>   tool and operation that was recorded, 40% of the sample was chosen from steps that had gone wrong, and many failures are
+>   a different but sensible choice. Counting any tool and operation that succeeded somewhere in the same task as right, the
+>   9B scores 60%.
+> - **"Qwen3.5-9B decides better than Qwen3-VL 8B" is weaker than stated.** On the same 72 full-prompt steps: 49% against 44% on
+>   the strict score (paired test p = 0.6, not significant) and 60% against 46% on the lenient one (p = 0.03). The "p = 0.001"
+>   below came from the truncated prompts and should not be relied on.
+> - **Speed.** With full prompts the 9B takes a median of 7.8 s a step (slowest 1 in 20: 19 s) and Qwen3-VL 8B 6.8 s, not the 3.7
+>   and 2.7 s below, which were for prompts half the length. The "about five times faster than Ollama" figure compared the two
+>   on those shorter prompts and has not been re-measured on full ones.
+> - **Showing the model fewer tools made no difference** (46% against 49%, within the noise).
+> - **Not re-checked:** the other models, the 35B expert-in-RAM result and the thinking-mode result were all measured on
+>   truncated prompts.
+>
+> The live results further down (6 of 15 cases passed in the real assistant) used the real prompts and are not affected.
+
 An agent such as YBM asks its model for one decision at a time: which tool to call, with what input, or whether the
 job is done. A general quality score does not predict that. The model that ranks first in
 [docs/MODELS.md](../../docs/MODELS.md) (Qwen3-VL 8B) still made up file names and job ids in live YBM runs. So this
@@ -7,7 +30,7 @@ benchmark replays the decisions a real YBM install has already made and scores t
 
 Hardware: RTX 3080 Laptop (8 GB), Ryzen 9 5900HS, 39 GB RAM. Everything here is Q4_K_M, 16K context.
 
-## What it found
+## What it found (measured on truncated prompts; see the correction above)
 
 1. **The runtime matters more than the model.** The same Qwen3-VL 8B, answering the same 60 steps, took a median of
    **13.4 s** (slowest 1 in 20: 60 s) through LocalDeploy and Ollama, and **2.8 s** (8.9 s) through `llama-server` with

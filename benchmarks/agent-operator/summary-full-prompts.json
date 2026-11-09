@@ -1,0 +1,121 @@
+{
+ "note": "72 steps (43 that went well, 29 that went badly) rebuilt in full; Qwen3.5-9B and Qwen3-VL 8B served through LocalDeploy's managed llama.cpp profiles. 'pass' is strict; lenient also accepts any valid, grounded tool and operation that succeeded elsewhere in the same task.",
+ "rows": [
+  {
+   "name": "qwen3.5-9b",
+   "gguf": null,
+   "args": null,
+   "steps": 72,
+   "pass": {
+    "successes": 35,
+    "of": 72
+   },
+   "parsed": {
+    "successes": 72,
+    "of": 72
+   },
+   "valid_call": {
+    "successes": 45,
+    "of": 52
+   },
+   "grounded_call": {
+    "successes": 51,
+    "of": 52
+   },
+   "agrees_on_good": {
+    "successes": 25,
+    "of": 43
+   },
+   "avoids_on_bad": {
+    "successes": 16,
+    "of": 29
+   },
+   "median_s": 7.83,
+   "p95_s": 19.36,
+   "decode_tps": null,
+   "prompts": "full (rebuilt from task history)"
+  },
+  {
+   "name": "qwen3.5-9b, tools scoped to the route",
+   "gguf": null,
+   "args": null,
+   "steps": 72,
+   "pass": {
+    "successes": 33,
+    "of": 72
+   },
+   "parsed": {
+    "successes": 72,
+    "of": 72
+   },
+   "valid_call": {
+    "successes": 46,
+    "of": 53
+   },
+   "grounded_call": {
+    "successes": 52,
+    "of": 53
+   },
+   "agrees_on_good": {
+    "successes": 22,
+    "of": 43
+   },
+   "avoids_on_bad": {
+    "successes": 14,
+    "of": 29
+   },
+   "median_s": 9.98,
+   "p95_s": 20.88,
+   "decode_tps": null,
+   "prompts": "full (rebuilt from task history)"
+  },
+  {
+   "name": "qwen3-vl-8b (today)",
+   "gguf": null,
+   "args": null,
+   "steps": 72,
+   "pass": {
+    "successes": 32,
+    "of": 72
+   },
+   "parsed": {
+    "successes": 72,
+    "of": 72
+   },
+   "valid_call": {
+    "successes": 37,
+    "of": 43
+   },
+   "grounded_call": {
+    "successes": 42,
+    "of": 43
+   },
+   "agrees_on_good": {
+    "successes": 23,
+    "of": 43
+   },
+   "avoids_on_bad": {
+    "successes": 13,
+    "of": 29
+   },
+   "median_s": 6.8100000000000005,
+   "p95_s": 19.67,
+   "decode_tps": null,
+   "prompts": "full (rebuilt from task history)"
+  }
+ ],
+ "lenient": {
+  "qwen3.5-9b": [
+   43,
+   72
+  ],
+  "qwen3.5-9b, tools scoped to the route": [
+   42,
+   72
+  ],
+  "qwen3-vl-8b (today)": [
+   33,
+   72
+  ]
+ }
+}
