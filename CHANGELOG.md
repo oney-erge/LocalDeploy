@@ -4,6 +4,11 @@ All notable changes to this project should be documented here.
 
 ## Unreleased
 
+- A `llamacpp` profile with `"managed": true` is run by LocalDeploy itself: the first request starts `llama-server` on a free
+  local port, one managed chat model stays loaded and asking for another switches, and it stops when LocalDeploy does (or
+  after `idle_stop_seconds`). The profile's `server_args`, context, flash attention, KV cache and GPU-layer fields become
+  the command line; `/health` shows `managed_llamacpp`; `scripts/start_llamacpp.ps1` leaves managed profiles to the server;
+  `scripts/stop.ps1` clears the pid files. The example `qwen35_9b_llamacpp` and `qwen3vl_8b_llamacpp` profiles use it.
 - `benchmarks/agent-operator/` publishes a model comparison for agent work: 599 decisions a real YBM install had made,
   replayed against Qwen3.5 9B and 4B, Qwen3-VL 8B, Qwen3.6, Gemma 4, GLM-4.6V-Flash and gpt-oss-20b, with the settings, model
   checksums and a paired test. The same Qwen3-VL 8B was about five times faster through `llama-server` than through Ollama

@@ -544,7 +544,6 @@
       "name": "qwen35_9b_llamacpp",
       "backend": "llamacpp",
       "model_id": "C:/models/Qwen3.5-9B-GGUF/Qwen3.5-9B-Q4_K_M.gguf",
-      "base_url": "http://127.0.0.1:8080",
       "enabled": false,
       "description": "llama.cpp Qwen3.5 9B Q4_K_M for agent work: the best of the small Qwen models in the agent-operator benchmark.",
       "recommended_for_8gb_vram": true,
@@ -558,7 +557,7 @@
       "repeat_penalty": 1.1,
       "timeout_seconds": 240,
       "slow_response_seconds": 30,
-      "notes": "Thinking is off (--reasoning off): with it on the 9B was 4x slower and scored lower. gpu_layers is left unset so llama-server's --fit fills the GPU. About 5.6 GB of VRAM at 16K context. See benchmarks/agent-operator.",
+      "notes": "Thinking is off (--reasoning off): with it on the 9B was 4x slower and scored lower. gpu_layers is left unset so llama-server's --fit fills the GPU. About 5.6 GB of VRAM at 16K context. See benchmarks/agent-operator. LocalDeploy starts llama-server for this profile on the first request, keeps one chat model loaded and switches when another is asked for (set idle_stop_seconds to free the GPU after a pause).",
       "quantization": "Q4_K_M",
       "gpu_layers": null,
       "flash_attention": true,
@@ -576,13 +575,13 @@
         "1",
         "-fitt",
         "1024"
-      ]
+      ],
+      "managed": true
     },
     "qwen3vl_8b_llamacpp": {
       "name": "qwen3vl_8b_llamacpp",
       "backend": "llamacpp",
       "model_id": "C:/models/Qwen3-VL-8B-Instruct-GGUF/Qwen3-VL-8B-Instruct-Q4_K_M.gguf",
-      "base_url": "http://127.0.0.1:8080",
       "enabled": false,
       "description": "llama.cpp Qwen3-VL 8B Q4_K_M: the same model as qwen3vl_8b_ollama, run directly.",
       "recommended_for_8gb_vram": true,
@@ -596,7 +595,7 @@
       "repeat_penalty": 1.1,
       "timeout_seconds": 240,
       "slow_response_seconds": 30,
-      "notes": "Same model and answers as the Ollama profile at about a fifth of the time per agent step in the benchmark (2.8 s against 13.4 s median). Text only as configured: for images add --mmproj and the projector file to server_args.",
+      "notes": "Same model and answers as the Ollama profile at about a fifth of the time per agent step in the benchmark (2.8 s against 13.4 s median). Text only as configured: for images add --mmproj and the projector file to server_args. LocalDeploy starts llama-server for this profile on the first request, keeps one chat model loaded and switches when another is asked for (set idle_stop_seconds to free the GPU after a pause).",
       "quantization": "Q4_K_M",
       "gpu_layers": null,
       "flash_attention": true,
@@ -614,7 +613,8 @@
         "1",
         "-fitt",
         "1024"
-      ]
+      ],
+      "managed": true
     }
   }
 }

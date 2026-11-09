@@ -56,8 +56,21 @@ Q4_K_M, 16K context:
 The runtime made the biggest difference: the same Qwen3-VL 8B was about five times faster through `llama-server` than
 through Ollama, with the same pass rate. Larger models, thinking mode, and the Gemma 4, GLM and gpt-oss models did
 not beat the small Qwen models. `config.example.json` has disabled `qwen35_9b_llamacpp` and `qwen3vl_8b_llamacpp`
-profiles; a profile's `server_args` list passes flags such as `--reasoning off` to `llama-server`. Method, all results,
-checksums and what is not yet proven: [benchmarks/agent-operator](../benchmarks/agent-operator/README.md).
+profiles. Method, all results, checksums and what is not yet proven:
+[benchmarks/agent-operator](../benchmarks/agent-operator/README.md).
+
+### Managed llama.cpp profiles
+
+Give a `llamacpp` profile `"managed": true` and LocalDeploy runs the model for you: the first request starts
+`llama-server` on a free local port with the profile's settings, later requests reuse it, asking for a different
+managed profile stops the current one first (an 8 GB card holds one), and it is stopped when LocalDeploy exits. Nothing
+is started until a request needs it, and `/health` reports `managed_llamacpp` with the model that is loaded. The
+profile's `context_limit`, `flash_attention`, `kv_cache_type_k/v`, `gpu_layers` (leave it unset and llama.cpp fits the
+layers to free memory), `threads`, `batch_size`, `mmap` and `mlock` become `llama-server` flags, and `server_args` is a
+list of any others (`"--reasoning", "off"` for a thinking model, `"--n-cpu-moe", "30"` to keep a mixture-of-experts
+model's experts in RAM). `idle_stop_seconds` frees the GPU after that long without a request and
+`startup_timeout_seconds` (default 300) bounds the model load. On a laptop RTX 3080 the first request took 9.7 s and
+switching between two 5 GB models 7.9 s.
 
 ### Reproduce the run
 
