@@ -1,6 +1,8 @@
 """Tests for prepare_request and related guardrails in api_server."""
 from __future__ import annotations
 
+import json
+
 from typing import Any, Dict
 import copy
 
@@ -131,6 +133,26 @@ class TestVisionGuardrails:
 
 
 class TestStructuredFormat:
+    def test_a_large_response_schema_is_not_counted_as_prompt(self) -> None:
+        # One branch per tool operation, as an agent writes it: far larger than the prompt limit, still allowed.
+        branches = [
+            {"type": "object", "properties": {"tool": {"const": f"tool_{n}"}, "arguments": {"type": "object"}}}
+            for n in range(600)
+        ]
+        response_format = {"type": "json_schema", "json_schema": {"name": "step", "schema": {"anyOf": branches}}}
+        assert len(json.dumps(response_format)) > 20_000
+        prepared, error = prepare_request("chat", _baseline_request(response_format=response_format))
+        assert error is None
+        assert prepared is not None
+        assert prepared["estimated_prompt_chars"] < 100
+
+    def test_a_response_schema_beyond_its_own_limit_is_refused(self) -> None:
+        schema = {"type": "object", "description": "x" * 450_000}
+        response_format = {"type": "json_schema", "json_schema": {"name": "big", "schema": schema}}
+        prepared, error = prepare_request("chat", _baseline_request(response_format=response_format))
+        assert prepared is None
+        assert "Response schema is too large" in (error["error"] or "")
+
     def test_response_format_is_preserved_for_backend_enforcement(self) -> None:
         response_format = {
             "type": "json_schema",

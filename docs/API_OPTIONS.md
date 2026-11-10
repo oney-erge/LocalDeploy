@@ -210,6 +210,7 @@ For every request, the server combines three sources in this order. The final va
 These environment variables are read by `get_global_limits` in `api_server.py`:
 
    - `GLOBAL_MAX_PROMPT_CHARS` (default 20000)
+   - `GLOBAL_MAX_RESPONSE_SCHEMA_CHARS` (default 400000; the size of a `response_format` JSON schema, which the backend enforces and which is not counted as prompt)
    - `GLOBAL_MAX_OUTPUT_TOKENS` (default 2048)
    - `GLOBAL_MAX_IMAGES` (default 8; hard server ceiling)
    - `GLOBAL_MAX_IMAGE_MB` (default 10)

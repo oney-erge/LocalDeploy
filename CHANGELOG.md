@@ -4,6 +4,10 @@ All notable changes to this project should be documented here.
 
 ## Unreleased
 
+- A `response_format` JSON schema is no longer counted as prompt text. The backend enforces it while the model writes
+  (llama.cpp builds a grammar from it, Ollama takes it as `format`), so a 75,000-character schema, such as one that gives
+  every tool call its own argument schema, was refused as "Prompt is too large" at the 30,000-character prompt limit.
+  It has its own bound, `GLOBAL_MAX_RESPONSE_SCHEMA_CHARS` (default 400,000).
 - Corrected `benchmarks/agent-operator` and the matching section of `docs/MODELS.md`. They had been measured on prompts YBM stores
   cut to 8,000 characters (the real ones are about 17,000), so the models did not see the whole request. Re-run on full prompts,
   Qwen3.5-9B and Qwen3-VL 8B are not clearly different on the strict score (49% against 44%), steps take about twice as long as
