@@ -210,6 +210,9 @@ def load_config() -> Dict[str, Any]:
 def get_global_limits() -> Dict[str, Any]:
     return {
         "max_prompt_chars": env_int("GLOBAL_MAX_PROMPT_CHARS", 20000),
+        # The size of a `response_format` JSON schema. The backend enforces it while the model writes (llama.cpp builds a
+        # grammar from it, Ollama takes it as `format`), so it is not prompt text and has its own, larger bound.
+        "max_response_schema_chars": env_int("GLOBAL_MAX_RESPONSE_SCHEMA_CHARS", 400000),
         "max_output_tokens": env_int("GLOBAL_MAX_OUTPUT_TOKENS", 2048),
         # Per-profile limits still default to one for existing profiles. This is
         # only the hard server ceiling, allowing qualified vision profiles to opt
@@ -537,7 +540,9 @@ def prepare_request(
     system_prompt = data.get("system_prompt") or ""
     response_format = data.get("response_format")
     response_format_chars = len(json.dumps(response_format, ensure_ascii=False)) if response_format else 0
-    estimated_prompt_chars = len(prompt) + len(system_prompt) + response_format_chars
+    # The schema is enforced by the backend, not read by the model, so it does not count as prompt. It used to: an agent
+    # that held every tool call to its own argument schema (about 75,000 characters) was refused as "Prompt is too large".
+    estimated_prompt_chars = len(prompt) + len(system_prompt)
     estimated_prompt_tokens = estimate_tokens_from_chars(estimated_prompt_chars)
     allow_clamp = bool(data.get("allow_clamp", False))
     safe_mode = bool(data.get("safe_mode", True))
@@ -547,6 +552,11 @@ def prepare_request(
     if estimated_prompt_chars > prompt_limit:
         errors.append(
             f"Prompt is too large: {estimated_prompt_chars} characters exceeds configured limit {prompt_limit}."
+        )
+    schema_limit = int(limits["max_response_schema_chars"])
+    if response_format_chars > schema_limit:
+        errors.append(
+            f"Response schema is too large: {response_format_chars} characters exceeds configured limit {schema_limit}."
         )
 
     profile_context_limit = int(profile.get("context_limit") or 2048)
