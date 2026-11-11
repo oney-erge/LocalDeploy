@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "repository": {"id": "oney-erge/LocalDeploy", "owner": "oney-erge", "maintenance": "unclassified", "interfaces": ["browser-ui", "api", "cli"]},
+  "capabilities": ["local-runtime", "async-jobs"],
+  "components": [{"id": "application", "root": "."}],
+  "environment": {"python": ">=3.11", "source": "pyproject.toml", "real_runtime_requires": ["supported model runtime", "local model"]},
+  "checks": {
+    "managed-runtime": {"argv": ["python", "-m", "pytest", "tests/test_llamacpp_managed.py", "-q"], "cwd": ".", "timeout_seconds": 120, "lane": "fast", "effects": "local-test-files"},
+    "model-controls": {"argv": ["python", "-m", "pytest", "tests/test_model_management.py", "tests/test_web_registry_models.py", "-q"], "cwd": ".", "timeout_seconds": 180, "lane": "journey", "effects": "local-test-files"}
+  },
+  "journeys": [{"id": "load-chat-unload", "user_outcome": "Load an installed model, chat, and observe its unload", "checks": ["managed-runtime", "model-controls"], "additional_evidence_needed": ["browser load-chat-unload journey", "real runtime and model smoke", "keyboard and focus review", "inference versus switching and stop boundaries"]}],
+  "state": {"owner": "localdeploy/backends/llamacpp_managed.py", "inspection": "/system/status", "process_scope": "single application process; independent processes require separate analysis"},
+  "evidence": {"status": "not-collected-by-repoctl", "note": "Declarations do not establish a passing user journey."},
+  "agent": {"instruction_entry": "AGENTS.md", "command_trust": "external-to-repository"}
+}

@@ -14,13 +14,14 @@ This is the chat-model counterpart of the decision models' ``llamacpp`` adapter 
 from __future__ import annotations
 
 import atexit
+from contextlib import contextmanager
 import json
 import re
 import subprocess
 import threading
 import time
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Iterator, List, Optional
 
 import requests
 
@@ -107,6 +108,8 @@ class _Server:
         self.process: Optional[subprocess.Popen] = None
         self.port = 0
         self.last_used = time.monotonic()
+        self.active_requests = 0
+        self.outcome_uncertain = False
         self.log_path = app_home() / "logs" / f"chat-llamacpp-{re.sub(r'[^A-Za-z0-9_.-]', '_', name)}.log"
 
     @property
@@ -160,13 +163,20 @@ class _Server:
         return " | ".join(text.strip().splitlines()[-lines:]) or "(empty log)"
 
     def stop(self) -> None:
-        process, self.process = self.process, None
+        process = self.process
         if process is not None and process.poll() is None:
             process.terminate()
             try:
                 process.wait(timeout=10)
             except subprocess.TimeoutExpired:
                 process.kill()
+                try:
+                    process.wait(timeout=10)
+                except subprocess.TimeoutExpired as exc:
+                    raise BackendCallError(f"Managed llama-server for '{self.name}' did not stop.") from exc
+            if process.poll() is None:
+                raise BackendCallError(f"Managed llama-server for '{self.name}' did not stop.")
+        self.process = None
         if process is not None:
             _pid_path().unlink(missing_ok=True)
 
@@ -180,6 +190,11 @@ def ensure(name: str, profile: Dict[str, Any]) -> str:
             current.last_used = time.monotonic()
             return current.base_url
         if current is not None:
+            if current.alive() and (current.active_requests or current.outcome_uncertain):
+                raise BackendCallError(
+                    f"Cannot switch managed model '{current.name}': a request is active or its outcome is unknown. "
+                    "Wait for it to finish; if it timed out, restart LocalDeploy to stop the managed server."
+                )
             current.stop()  # a different profile, changed settings, or a server that died: start fresh
             _ACTIVE = None
         fresh = _Server(name, profile)
@@ -189,19 +204,69 @@ def ensure(name: str, profile: Dict[str, Any]) -> str:
         return fresh.base_url
 
 
-def stop_all() -> None:
+@contextmanager
+def request_lease(name: str, profile: Dict[str, Any]) -> Iterator[str]:
+    """Keep the managed server owned until the full synchronous request ends."""
+    with _LOCK:
+        base_url = ensure(name, profile)
+        server = _ACTIVE
+        assert server is not None
+        server.active_requests += 1
+    try:
+        yield base_url
+    except (BackendCallError, requests.RequestException) as exc:
+        # A lost response does not prove that server-side generation ended.
+        if isinstance(exc, requests.RequestException) or isinstance(exc.__cause__, requests.RequestException):
+            with _LOCK:
+                server.outcome_uncertain = True
+        raise
+    finally:
+        with _LOCK:
+            server.active_requests -= 1
+            server.last_used = time.monotonic()
+
+
+def stop_all(*, force: bool = False) -> bool:
     global _ACTIVE
     with _LOCK:
         if _ACTIVE is not None:
+            if not force and _ACTIVE.alive() and (_ACTIVE.active_requests or _ACTIVE.outcome_uncertain):
+                return False
             _ACTIVE.stop()
             _ACTIVE = None
+        return True
+
+
+def stop_profile(name: str) -> Dict[str, Any]:
+    """Stop only the matching owned server, after its requests have ended."""
+    with _LOCK:
+        if _ACTIVE is None or _ACTIVE.name != name:
+            return {"success": False, "confirmed": False, "message": f"Managed profile '{name}' is not loaded."}
+        if not stop_all():
+            return {
+                "success": False, "confirmed": False, "status": "busy",
+                "message": f"Managed profile '{name}' has active or uncertain work; it was not stopped.",
+            }
+        return {"success": True, "confirmed": True, "status": "unloaded", "stopped": name}
 
 
 def status() -> Dict[str, Any]:
     with _LOCK:
         if _ACTIVE is None or not _ACTIVE.alive():
             return {"loaded": None}
-        return {"loaded": _ACTIVE.name, "server": _ACTIVE.base_url}
+        return {
+            "loaded": _ACTIVE.name, "server": _ACTIVE.base_url,
+            "active_requests": _ACTIVE.active_requests,
+            "outcome_uncertain": _ACTIVE.outcome_uncertain,
+        }
+
+
+def _reap_idle(now: float) -> None:
+    with _LOCK:
+        active = _ACTIVE
+        limit = float((active.profile.get("idle_stop_seconds") or 0)) if active else 0
+        if active and limit > 0 and now - active.last_used > limit:
+            stop_all()
 
 
 def _start_reaper() -> None:
@@ -214,13 +279,9 @@ def _start_reaper() -> None:
     def watch() -> None:
         while True:
             time.sleep(15)
-            with _LOCK:
-                active = _ACTIVE
-                limit = float((active.profile.get("idle_stop_seconds") or 0)) if active else 0
-                if active and limit > 0 and time.monotonic() - active.last_used > limit:
-                    stop_all()
+            _reap_idle(time.monotonic())
 
     threading.Thread(target=watch, name="llamacpp-idle-reaper", daemon=True).start()
 
 
-atexit.register(stop_all)
+atexit.register(lambda: stop_all(force=True))

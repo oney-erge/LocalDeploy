@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from contextlib import nullcontext
 from pathlib import Path
 from typing import Any, Dict, List
 
@@ -51,9 +52,16 @@ def call_llamacpp(prepared: Dict[str, Any]) -> str:
 
     if llamacpp_managed.is_managed(profile):
         # LocalDeploy starts (or switches to) this profile's llama-server itself and forwards to it.
-        base_url = llamacpp_managed.ensure(str(profile.get("name") or prepared.get("profile_name") or "managed"), profile)
+        endpoint = llamacpp_managed.request_lease(
+            str(profile.get("name") or prepared.get("profile_name") or "managed"), profile
+        )
     else:
-        base_url = get_backend_base_url(profile, "llamacpp")
+        endpoint = nullcontext(get_backend_base_url(profile, "llamacpp"))
+    with endpoint as base_url:
+        return _call_llamacpp_at(prepared, model_id, base_url)
+
+
+def _call_llamacpp_at(prepared: Dict[str, Any], model_id: str, base_url: str) -> str:
     messages: List[Dict[str, str]] = []
     if prepared["system_prompt"]:
         messages.append({"role": "system", "content": prepared["system_prompt"]})

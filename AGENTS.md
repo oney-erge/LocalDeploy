@@ -12,6 +12,8 @@ Use `README.md` for supported operator behavior, `SECURITY.md` before changing
 network exposure, and the focused files under `docs/` for API, UI, CLI,
 packaging, and deployment details.
 
+See `docs/STATE_MACHINES.md` for runtime ownership and recovery boundaries.
+
 ## Commands
 
 Development:
