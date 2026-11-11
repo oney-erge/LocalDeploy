@@ -287,8 +287,11 @@ async function parseOrThrow(url, resp) {
   throw new Error(detail);
 }
 
-export async function getJSON(url) {
+export async function getJSON(url, { isCurrent } = {}) {
   const resp = await fetch(url, { headers: authHeaders() });
+  // A superseded read should not open an authentication prompt or publish
+  // an error after a newer request has already taken ownership of the view.
+  if (isCurrent && !isCurrent()) return null;
   if (handle401(resp)) throw new Error("unauthorized");
   return parseOrThrow(url, resp);
 }
