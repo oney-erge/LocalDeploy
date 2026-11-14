@@ -21,7 +21,7 @@ from pydantic import BaseModel, Field
 import localdeploy
 from localdeploy.backends import decision
 from localdeploy.backends import llamacpp_managed
-from localdeploy.backends.llamacpp import call_llamacpp, llama_health
+from localdeploy.backends.llamacpp import call_llamacpp, llama_health_cached
 from localdeploy.backends.ollama import (
     call_ollama_detailed,
     embed_ollama,
@@ -1357,7 +1357,7 @@ def health() -> Dict[str, Any]:
         models, ollama_error = ollama_models_cached(ollama_base)
         ollama_reachable = ollama_error is None
     llama_base = os.getenv("LLAMACPP_BASE_URL", "http://127.0.0.1:8080")
-    llama_status = llama_health(llama_base) if env_bool("ENABLE_LLAMA_CPP", False) else {"enabled": False}
+    llama_status = llama_health_cached(llama_base) if env_bool("ENABLE_LLAMA_CPP", False) else {"enabled": False}
     return {
         "success": True,
         "server": "ok",
