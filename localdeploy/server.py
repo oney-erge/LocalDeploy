@@ -27,6 +27,7 @@ from localdeploy.backends.ollama import (
     embed_ollama,
     encode_embedding_base64,
     ollama_models,
+    ollama_models_cached,
     stream_ollama_events,
 )
 from localdeploy.backends.openai_compatible import (
@@ -1353,7 +1354,7 @@ def health() -> Dict[str, Any]:
         models, ollama_error = [], "disabled by GPU-only mode"
         ollama_reachable = False
     else:
-        models, ollama_error = ollama_models(ollama_base)
+        models, ollama_error = ollama_models_cached(ollama_base)
         ollama_reachable = ollama_error is None
     llama_base = os.getenv("LLAMACPP_BASE_URL", "http://127.0.0.1:8080")
     llama_status = llama_health(llama_base) if env_bool("ENABLE_LLAMA_CPP", False) else {"enabled": False}

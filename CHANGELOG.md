@@ -4,6 +4,10 @@ All notable changes to this project should be documented here.
 
 ## Unreleased
 
+- `/health` no longer waits for an Ollama that is not running. A refused connection to a loopback port takes about two seconds on
+  Windows, and `/health` asked Ollama on every call, so it took four seconds; its callers (the YBM console on every page, `ybm status`, the
+  launchers) waited, and `ybm status` showed LocalDeploy as down while it was up. The connect step of the Ollama look now has half a
+  second, and `/health` remembers the answer for ten seconds (`OLLAMA_PROBE_TTL_SECONDS`).
 - A `response_format` JSON schema is no longer counted as prompt text. The backend enforces it while the model writes
   (llama.cpp builds a grammar from it, Ollama takes it as `format`), so a 75,000-character schema, such as one that gives
   every tool call its own argument schema, was refused as "Prompt is too large" at the 30,000-character prompt limit.

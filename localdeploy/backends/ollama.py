@@ -3,6 +3,8 @@ from __future__ import annotations
 import base64
 import json
 import struct
+import threading
+import time
 from typing import Any, Dict, Iterator, List, Optional, Tuple
 
 import requests
@@ -360,11 +362,33 @@ def encode_embedding_base64(values: List[float]) -> str:
     return base64.b64encode(packed).decode("ascii")
 
 
+#: How long a look at Ollama is trusted by /health. Callers poll /health (the console on every page, `ybm status`, launchers), and an
+#: Ollama that is not running used to cost every one of those calls its timeout.
+OLLAMA_PROBE_TTL_SECONDS = 10.0
+_probe_lock = threading.Lock()
+_probe_cache: Dict[str, Tuple[float, Tuple[List[str], Optional[str]]]] = {}
+
+
+def ollama_models_cached(base_url: str) -> Tuple[List[str], Optional[str]]:
+    """`ollama_models`, remembered for a few seconds, so that a health check does not make a request (or wait for a refusal) each time."""
+    now = time.monotonic()
+    with _probe_lock:
+        cached = _probe_cache.get(base_url)
+        if cached is not None and now - cached[0] < OLLAMA_PROBE_TTL_SECONDS:
+            return cached[1]
+    result = ollama_models(base_url)
+    with _probe_lock:
+        _probe_cache[base_url] = (time.monotonic(), result)
+    return result
+
+
 def ollama_models(base_url: str) -> Tuple[List[str], Optional[str]]:
     if not is_loopback_url(base_url):
         return [], f"Refusing non-local Ollama URL: {base_url}"
     try:
-        response = requests.get(f"{strip_trailing_slash(base_url)}/api/tags", timeout=3)
+        # A connection to a loopback port nobody listens on is refused at once on Linux and macOS but takes about two seconds on Windows,
+        # so the connect step gets half a second: a local Ollama that is running accepts immediately.
+        response = requests.get(f"{strip_trailing_slash(base_url)}/api/tags", timeout=(0.5, 3))
         response.raise_for_status()
         data = response.json()
         return [item.get("name", "") for item in data.get("models", []) if item.get("name")], None
