@@ -189,12 +189,16 @@ def ensure(name: str, profile: Dict[str, Any]) -> str:
         return fresh.base_url
 
 
-def stop_all() -> None:
+def stop_all() -> Optional[str]:
+    """Stop the running server, if there is one, and return the name of the profile it was serving (None when nothing was loaded)."""
     global _ACTIVE
     with _LOCK:
-        if _ACTIVE is not None:
-            _ACTIVE.stop()
-            _ACTIVE = None
+        if _ACTIVE is None:
+            return None
+        name = _ACTIVE.name
+        _ACTIVE.stop()
+        _ACTIVE = None
+        return name
 
 
 def status() -> Dict[str, Any]:
