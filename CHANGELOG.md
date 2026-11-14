@@ -4,6 +4,10 @@ All notable changes to this project should be documented here.
 
 ## Unreleased
 
+- `/health` no longer waits for llama.cpp either. The same refused-connection wait (about two seconds on Windows) applied to the
+  llama.cpp look when `ENABLE_LLAMA_CPP` is on and no `llama-server` is running on the default port (a managed profile starts its own
+  on another port), so `/health` still took two seconds after the Ollama fix. The connect step is half a second and the answer is
+  remembered for ten seconds (`LLAMA_PROBE_TTL_SECONDS`).
 - `/health` no longer waits for an Ollama that is not running. A refused connection to a loopback port takes about two seconds on
   Windows, and `/health` asked Ollama on every call, so it took four seconds; its callers (the YBM console on every page, `ybm status`, the
   launchers) waited, and `ybm status` showed LocalDeploy as down while it was up. The connect step of the Ollama look now has half a

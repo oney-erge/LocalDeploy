@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+import threading
+import time
 from pathlib import Path
 from typing import Any, Dict, List
 
@@ -132,13 +134,33 @@ def call_llamacpp(prepared: Dict[str, Any]) -> str:
     return json.dumps(data, ensure_ascii=False)
 
 
+#: How long /health trusts a look at llama.cpp. A port nobody listens on is refused at once on Linux and macOS but takes about two
+#: seconds on Windows, and /health looked every call (see ollama_models_cached for the same reason).
+LLAMA_PROBE_TTL_SECONDS = 10.0
+_probe_lock = threading.Lock()
+_probe_cache: Dict[str, "tuple[float, Dict[str, Any]]"] = {}
+
+
+def llama_health_cached(base_url: str) -> Dict[str, Any]:
+    now = time.monotonic()
+    with _probe_lock:
+        cached = _probe_cache.get(base_url)
+        if cached is not None and now - cached[0] < LLAMA_PROBE_TTL_SECONDS:
+            return cached[1]
+    result = llama_health(base_url)
+    with _probe_lock:
+        _probe_cache[base_url] = (time.monotonic(), result)
+    return result
+
+
 def llama_health(base_url: str) -> Dict[str, Any]:
     if not is_loopback_url(base_url):
         return {"reachable": False, "error": f"Refusing non-local llama.cpp URL: {base_url}"}
     base_url = strip_trailing_slash(base_url)
     for path in ("/health", "/v1/models"):
         try:
-            response = requests.get(f"{base_url}{path}", timeout=2)
+            # connect 0.5 s: a llama-server that is running accepts at once; an absent one costs two seconds on Windows
+            response = requests.get(f"{base_url}{path}", timeout=(0.5, 2))
             if response.ok:
                 return {"reachable": True, "endpoint": f"{base_url}{path}"}
         except requests.ConnectionError:
