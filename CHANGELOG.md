@@ -4,6 +4,10 @@ All notable changes to this project should be documented here.
 
 ## Unreleased
 
+- `POST /models/free` now stops the llama.cpp server LocalDeploy manages as well as unloading Ollama's models. It only unloaded Ollama's, so
+  freeing the GPU for something else (a game) left the main language model in video memory when it was served by llama.cpp. The reply names
+  the profile that was stopped (`llamacpp`) and counts it in `unloaded`; when Ollama cannot be reached but a llama.cpp server was stopped,
+  memory was freed and that is a success. The server starts again on the next request that needs it.
 - `/health` no longer waits for llama.cpp either. The same refused-connection wait (about two seconds on Windows) applied to the
   llama.cpp look when `ENABLE_LLAMA_CPP` is on and no `llama-server` is running on the default port (a managed profile starts its own
   on another port), so `/health` still took two seconds after the Ollama fix. The connect step is half a second and the answer is

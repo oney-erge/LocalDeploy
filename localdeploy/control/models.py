@@ -33,6 +33,7 @@ from fastapi import APIRouter
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
+from ..backends import llamacpp_managed
 from ..backends.llamacpp import llama_health
 from ..utils import BackendCallError, app_home, env_float, offline_mode, require_gpu_only
 from . import _ollama, calibration, monitor
@@ -789,22 +790,32 @@ def models_delete(req: DeleteRequest) -> Dict[str, Any]:
 
 @router.post("/models/free")
 def models_free() -> Dict[str, Any]:
-    """Unload all loaded models from memory/VRAM (the 'free memory' reset)."""
+    """Unload all loaded models from memory/VRAM (the 'free memory' reset): Ollama's, and the llama.cpp server LocalDeploy manages.
+
+    A person freeing the GPU for something else (a game) means every model LocalDeploy has loaded. The llama.cpp server was left running
+    because only Ollama models were unloaded here; it starts again on the next request that needs it. When Ollama cannot be reached but a
+    llama.cpp server was stopped, memory was freed and that is a success.
+    """
     running_before, _ = _ollama.list_running()
+    llamacpp = llamacpp_managed.stop_all()
     try:
         count, err = _ollama.unload_all()
     except BackendCallError as exc:
-        return {"success": False, "error": str(exc)}
-    if err is not None:
+        count, err = 0, str(exc)
+    if err is not None and llamacpp is None:
         return {"success": False, "error": err}
+    if err is not None:
+        count = 0
     for m in running_before:
         name = m.get("name")
         if name:
             monitor.note_stop(name)
+    unloaded = count + (1 if llamacpp else 0)
     return {
         "success": True,
-        "unloaded": count,
-        "message": f"Freed memory: unloaded {count} model(s)." if count else "No models were loaded.",
+        "unloaded": unloaded,
+        "llamacpp": llamacpp,
+        "message": f"Freed memory: unloaded {unloaded} model(s)." if unloaded else "No models were loaded.",
     }
 
 
