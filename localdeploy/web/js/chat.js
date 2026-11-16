@@ -4,7 +4,7 @@ import { $, $$, downloadFile, esc, fmtBytes, formatExpires, postJSON, postMaybeS
 
 const state = {
   profiles: [], profileData: {}, profileModels: {}, defaultProfile: null,
-  installedLoaded: false, installedList: [],
+  installedLoaded: false, installedUnavailable: false, installedList: [], runtimeStatus: "unknown",
   chatMessages: [], chatImages: [], chatFiles: [], chatController: null,
   chatSessionBusy: false, chatSessionOperation: null,
   // True once the user picks a model in the Chat picker; until then Chat follows the loaded model.
@@ -43,7 +43,9 @@ export function updateModelContext(snapshot = {}) {
   state.profileModels = Object.fromEntries((snapshot.profiles || []).map((profile) => [profile.name, profile.model_id || profile.name]));
   state.defaultProfile = snapshot.defaultProfile || null;
   state.installedLoaded = !!snapshot.installedLoaded;
+  state.installedUnavailable = !!snapshot.installedUnavailable;
   state.installedList = structuredClone(snapshot.installed || []);
+  state.runtimeStatus = snapshot.runtimeStatus || "unknown";
   renderChatModelOptions();
 }
 
@@ -75,7 +77,7 @@ function runningChatModel(model = chatSelectedModel()) {
 }
 
 function chatModelIsReady() {
-  return !!(runningChatModel() && chatSelectedProfile());
+  return state.runtimeStatus === "available" && !!(runningChatModel() && chatSelectedProfile());
 }
 
 function chatProfileSupportsVision() {
@@ -89,7 +91,9 @@ function renderChatModelOptions() {
   const current = select.value;
   const models = state.installedList || [];
   if (!state.installedLoaded) {
-    select.innerHTML = `<option value="">Checking installed models…</option>`;
+    select.innerHTML = state.installedUnavailable
+      ? `<option value="">Installed model inventory unavailable</option>`
+      : `<option value="">Checking installed models…</option>`;
     select.disabled = true;
     updateChatModelState();
     return;
@@ -134,7 +138,7 @@ function updateChatModelState() {
   const model = chatSelectedModel();
   const running = runningChatModel(model);
   const profile = chatSelectedProfile();
-  const ready = !!(model && running && profile);
+  const ready = state.runtimeStatus === "available" && !!(model && running && profile);
   const vision = chatProfileSupportsVision();
   const operation = state.chatSessionOperation || (state.chatSessionBusy ? "loading" : null);
   const canAttach = ready && !operation;
@@ -144,7 +148,7 @@ function updateChatModelState() {
       ? "Attach text files or images to your next message"
       : "Attach text files; images require a vision-capable model"
     : "Load an installed model before attaching files";
-  if ((!ready || !vision) && state.chatImages.length) {
+  if (profile && !vision && state.chatImages.length) {
     state.chatImages = [];
     renderChatAttachments();
   }
@@ -159,13 +163,15 @@ function updateChatModelState() {
         ? "Select Enable chat above to start chatting"
         : "Load an installed model to start chatting";
   duration.disabled = ready || !!operation;
-  action.disabled = !model || !!operation || !!state.chatController;
+  action.disabled = !model || !!operation || !!state.chatController || state.runtimeStatus !== "available";
   session.className = `chat-session-state${ready && !operation ? " ready" : operation ? " loading" : ""}`;
   progress?.classList.toggle("hidden", !operation);
   if (progressLabel && operation) progressLabel.textContent = `${operation === "unloading" ? "Unloading" : "Loading"} ${model}…`;
   if (!state.installedLoaded) {
-    hint.textContent = "Checking models installed in Ollama…";
-    session.lastElementChild.textContent = "Checking availability";
+    hint.textContent = state.installedUnavailable
+      ? "Cannot check installed models. Open Setup & Deploy and use Refresh to retry."
+      : "Checking models installed in Ollama…";
+    session.lastElementChild.textContent = state.installedUnavailable ? "Inventory unavailable" : "Checking availability";
     action.textContent = "Load model";
   } else if (!model) {
     hint.textContent = "No local models are installed. Pull one from Setup & Deploy to use Chat.";
@@ -176,6 +182,13 @@ function updateChatModelState() {
     hint.textContent = `${unloading ? "Releasing" : "Loading"} ${model} ${unloading ? "from" : "into"} RAM and VRAM…`;
     session.lastElementChild.textContent = unloading ? "Unloading" : "Loading";
     action.textContent = unloading ? "Unloading…" : "Loading…";
+  } else if (state.runtimeStatus !== "available") {
+    const unavailable = state.runtimeStatus === "unavailable";
+    hint.textContent = unavailable
+      ? "Cannot check model status. Open Setup & Deploy and use Refresh status to retry."
+      : "Checking whether the model is running…";
+    session.lastElementChild.textContent = unavailable ? "Status unavailable" : "Checking status";
+    action.textContent = "Load model";
   } else if (ready) {
     const placement = running.placement ? ` · ${running.placement}${running.gpu_percent != null ? ` ${running.gpu_percent}% GPU` : ""}` : "";
     hint.textContent = `${model} is ready · ${formatExpires(running.expires_at)}${placement}`;
@@ -197,7 +210,7 @@ function updateChatModelState() {
 async function toggleChatSession() {
   const model = chatSelectedModel();
   const btn = $("#btn-chat-session");
-  if (!model || state.chatSessionBusy) return;
+  if (!model || state.chatSessionBusy || state.runtimeStatus !== "available") return;
   if (chatModelIsReady()) {
     await killRunningModel(model, btn);
     return;
@@ -716,9 +729,11 @@ function renderChatWelcome() {
   const ready = chatModelIsReady();
   const model = chatSelectedModel();
   if (!state.installedLoaded) {
-    welcome.innerHTML = `<div class="chat-welcome-mark">…</div>
-      <h3>Checking local models</h3>
-      <p class="muted small">Chat will show models that are actually installed in Ollama.</p>`;
+    welcome.innerHTML = state.installedUnavailable
+      ? `<div class="chat-welcome-mark">!</div><h3>Inventory unavailable</h3>
+        <p class="muted small">Open Setup &amp; Deploy and use Refresh to check installed models again.</p>`
+      : `<div class="chat-welcome-mark">…</div><h3>Checking local models</h3>
+        <p class="muted small">Chat will show models that are actually installed in Ollama.</p>`;
     list.appendChild(welcome);
     return;
   }
@@ -732,6 +747,16 @@ function renderChatWelcome() {
     openCatalog.textContent = "Open model catalog";
     openCatalog.addEventListener("click", () => onNavigate("serve"));
     welcome.appendChild(openCatalog);
+    list.appendChild(welcome);
+    return;
+  }
+  if (state.runtimeStatus !== "available") {
+    const unavailable = state.runtimeStatus === "unavailable";
+    welcome.innerHTML = `<div class="chat-welcome-mark">${unavailable ? "!" : "…"}</div>
+      <h3>${unavailable ? "Status unavailable" : "Checking model status"}</h3>
+      <p class="muted small">${unavailable
+        ? "Open Setup &amp; Deploy and use Refresh status to check again."
+        : "Waiting for the runtime status before enabling Chat."}</p>`;
     list.appendChild(welcome);
     return;
   }

@@ -177,6 +177,266 @@ def test_clear_history_is_present_and_confirms(live_server, browser):
         page.close()
 
 
+def test_chat_model_picker_distinguishes_checking_from_one_installed_model(live_server, browser):
+    page = browser.new_page()
+    try:
+        page.goto(f"{live_server}/ui", wait_until="domcontentloaded")
+        states = page.evaluate("""async () => {
+          const chat = await import('/ui/js/chat.js?v=20261028-ui34');
+          const select = document.querySelector('#chat-model');
+          chat.updateModelContext({installedLoaded: false});
+          const checking = {count: select.options.length, value: select.value, disabled: select.disabled};
+          chat.updateModelContext({installedLoaded: true, installed: [{name: 'example-model'}]});
+          return {checking, installed: {count: select.options.length, value: select.value, disabled: select.disabled}};
+        }""")
+        assert states["checking"] == {"count": 1, "value": "", "disabled": True}
+        assert states["installed"] == {"count": 1, "value": "example-model", "disabled": False}
+    finally:
+        page.close()
+
+
+@pytest.mark.parametrize("kind", ["runtime", "installed", "profiles"])
+@pytest.mark.parametrize("failure", ["none", "older", "newer", "older-unauthorized", "newer-unauthorized"])
+def test_late_model_refresh_does_not_overwrite_a_newer_result(live_server, browser, kind, failure):
+    page = browser.new_page()
+    profile = {"backend": "ollama", "model_id": "demo", "enabled": True}
+    page.route("**/profiles", lambda route: route.fulfill(json={"profiles": {"demo": profile}, "default_profile": "demo"}))
+    page.route("**/registry/installed", lambda route: route.fulfill(json={"success": True, "installed": [{"name": "demo"}]}))
+    page.route("**/system/status", lambda route: route.fulfill(json={
+        "success": True, "served_models": [], "ollama": {"reachable": True, "running": []},
+    }))
+    try:
+        page.goto(f"{live_server}/ui", wait_until="domcontentloaded")
+        sync_api.expect(page.locator("#chat-model")).to_have_value("demo")
+        result = page.evaluate("""async ({kind, failure}) => {
+          const models = await import('/ui/js/models.js?v=20261028-ui34');
+          const paths = {runtime: '/system/status', installed: '/registry/installed', profiles: '/profiles'};
+          const originalFetch = window.fetch;
+          const originalPrompt = window.prompt;
+          let prompts = 0;
+          window.prompt = () => { prompts += 1; return null; };
+          const pending = [];
+          window.fetch = (url, options) => {
+            if (new URL(url, location.href).pathname === paths[kind]) {
+              return new Promise(resolve => pending.push(resolve));
+            }
+            return originalFetch(url, options);
+          };
+          const options = {runtime: false, installed: false, profiles: false, [kind]: true};
+          const oldRefresh = models.refreshModels(options);
+          const newRefresh = models.refreshModels(options);
+          if (pending.length !== 2) throw new Error(`Expected two requests; got ${pending.length}`);
+          const values = {
+            runtime: [{success: true, served_models: [], ollama: {reachable: true, running: []}},
+                      {success: true, served_models: ['demo'], ollama: {reachable: true, running: [{name: 'demo'}]}}],
+            installed: [{success: true, installed: [{name: 'old-model'}]},
+                        {success: true, installed: [{name: 'new-model'}]}],
+            profiles: [{default_profile: 'old', profiles: {old: {model_id: 'demo', enabled: true}}},
+                       {default_profile: 'new', profiles: {new: {model_id: 'demo', enabled: true}}}],
+          };
+          const response = (data, status = 200) => new Response(JSON.stringify(data), {
+            status, headers: {'Content-Type': 'application/json'},
+          });
+          pending[1](failure === 'newer' ? response({detail: 'newest refresh failure'}, 500)
+            : failure === 'newer-unauthorized' ? response({detail: 'newest authorization'}, 401)
+            : response(values[kind][1]));
+          await newRefresh;
+          const snapshot = () => {
+            const value = models.getModelSnapshot();
+            return {running: value.running.map(item => item.name), installed: value.installed.map(item => item.name),
+                    profiles: value.profiles.map(item => item.name), picker: document.querySelector('#chat-model').value,
+                    session: document.querySelector('#chat-session-state').innerText};
+          };
+          const newer = snapshot();
+          pending[0](failure === 'older' ? response({detail: 'obsolete refresh failure'}, 500)
+            : failure === 'older-unauthorized' ? response({detail: 'obsolete authorization'}, 401)
+            : response(values[kind][0]));
+          await oldRefresh;
+          const final = snapshot();
+          window.fetch = originalFetch;
+          window.prompt = originalPrompt;
+          return {newer, final, prompts, body: document.body.innerText};
+        }""", {"kind": kind, "failure": failure})
+        expected = {"runtime": ("running", ["demo"]), "installed": ("installed", ["new-model"]),
+                    "profiles": ("profiles", ["new"])}
+        key, value = expected[kind]
+        if failure not in {"newer", "newer-unauthorized"}:
+            assert result["newer"][key] == value
+        assert result["final"] == result["newer"]
+        if kind == "runtime" and failure not in {"newer", "newer-unauthorized"}:
+            assert "Ready" in result["final"]["session"]
+        if kind == "installed" and failure not in {"newer", "newer-unauthorized"}:
+            assert result["final"]["picker"] == "new-model"
+        assert "obsolete refresh failure" not in result["body"]
+        assert result["prompts"] == (1 if failure == "newer-unauthorized" else 0)
+        if failure == "newer":
+            assert "newest refresh failure" in result["body"]
+    finally:
+        page.close()
+
+
+def test_loading_model_ignores_older_status_and_preserves_chat_draft(live_server, browser):
+    page = browser.new_page()
+    runtime = {"running": []}
+    profile = {"backend": "ollama", "model_id": "demo", "enabled": True}
+    page.route("**/profiles", lambda route: route.fulfill(json={"profiles": {"demo": profile}, "default_profile": "demo"}))
+    page.route("**/profiles/upsert", lambda route: route.fulfill(json={"success": True, "profile": "demo", "profile_data": profile}))
+    page.route("**/registry/installed", lambda route: route.fulfill(json={"success": True, "installed": [{"name": "demo"}]}))
+    page.route("**/system/status", lambda route: route.fulfill(json={
+        "success": True, "served_models": [item["name"] for item in runtime["running"]],
+        "ollama": {"reachable": True, "running": runtime["running"]},
+    }))
+
+    def serve(route):
+        runtime["running"] = [{"name": "demo", "placement": "CPU"}]
+        route.fulfill(json={"success": True, "served": "demo"})
+
+    page.route("**/models/serve", serve)
+    try:
+        page.goto(f"{live_server}/ui", wait_until="domcontentloaded")
+        page.get_by_role("tab", name="Chat").click()
+        sync_api.expect(page.locator("#chat-model")).to_have_value("demo")
+        sync_api.expect(page.locator("#chat-session-state")).to_contain_text("On disk")
+        page.evaluate("""async () => {
+          const models = await import('/ui/js/models.js?v=20261028-ui34');
+          const originalFetch = window.fetch;
+          let held = false;
+          window.fetch = (url, options) => {
+            if (!held && new URL(url, location.href).pathname === '/system/status') {
+              held = true;
+              return new Promise(resolve => {
+                window.__releaseOldStatus = () => resolve(new Response(JSON.stringify({
+                  success: true, served_models: [], ollama: {reachable: true, running: []},
+                }), {headers: {'Content-Type': 'application/json'}}));
+              });
+            }
+            return originalFetch(url, options);
+          };
+          window.__oldStatus = models.refreshModels({profiles: false, installed: false});
+          if (!window.__releaseOldStatus) throw new Error('Old status request was not held');
+        }""")
+        page.locator("#btn-chat-session").click()
+        sync_api.expect(page.locator("#chat-session-state")).to_contain_text("Ready")
+        page.locator("#chat-input").fill("Keep this draft")
+        page.evaluate("""async () => { window.__releaseOldStatus(); await window.__oldStatus; }""")
+        sync_api.expect(page.locator("#chat-session-state")).to_contain_text("Ready")
+        assert page.locator("#chat-input").is_enabled()
+        assert page.locator("#chat-input").input_value() == "Keep this draft"
+        assert page.locator("#btn-chat-session").inner_text() == "Unload"
+    finally:
+        page.close()
+
+
+@pytest.mark.parametrize("failure", ["http", "offline"])
+def test_chat_preserves_draft_while_runtime_status_is_unavailable(live_server, browser, failure):
+    page = browser.new_page()
+    profile = {"backend": "ollama", "model_id": "demo", "enabled": True, "supports_vision": True}
+    page.route("**/profiles", lambda route: route.fulfill(json={"profiles": {"demo": profile}, "default_profile": "demo"}))
+    page.route("**/registry/installed", lambda route: route.fulfill(json={"success": True, "installed": [{"name": "demo"}]}))
+    page.route("**/system/status", lambda route: route.fulfill(json={
+        "success": True, "served_models": ["demo"],
+        "ollama": {"reachable": True, "running": [{"name": "demo", "placement": "CPU"}]},
+    }))
+    try:
+        page.goto(f"{live_server}/ui", wait_until="domcontentloaded")
+        page.get_by_role("tab", name="Chat").click()
+        sync_api.expect(page.locator("#chat-session-state")).to_contain_text("Ready")
+        page.locator("#chat-input").fill("Keep this draft")
+        page.locator("#chat-images").set_input_files({
+            "name": "draft.png", "mimeType": "image/png", "buffer": b"\x89PNG\r\n\x1a\nexample",
+        })
+        sync_api.expect(page.locator("#chat-attachments .chat-attach-chip")).to_have_count(1)
+        page.evaluate("""async failure => {
+          const models = await import('/ui/js/models.js?v=20261028-ui34');
+          const originalFetch = window.fetch;
+          window.fetch = (url, options) => {
+            if (new URL(url, location.href).pathname === '/system/status') {
+              const body = failure === 'offline'
+                ? {success: true, served_models: [], ollama: {reachable: false, running: [], error: 'offline'}}
+                : {detail: 'simulated status outage'};
+              return Promise.resolve(new Response(JSON.stringify(body), {
+                status: failure === 'http' ? 500 : 200, headers: {'Content-Type': 'application/json'},
+              }));
+            }
+            return originalFetch(url, options);
+          };
+          await models.refreshModels({profiles: false, installed: false});
+          window.fetch = originalFetch;
+        }""", failure)
+        sync_api.expect(page.locator("#chat-session-state")).to_contain_text("Status unavailable")
+        sync_api.expect(page.locator("#chat-messages")).to_contain_text("Status unavailable")
+        assert page.locator("#chat-input").is_disabled()
+        assert page.locator("#btn-chat-session").is_disabled()
+        assert page.locator("#chat-input").input_value() == "Keep this draft"
+        assert page.locator("#chat-attachments .chat-attach-chip").count() == 1
+        sync_api.expect(page.locator("#status-body")).to_contain_text("Status unavailable")
+        model_row = page.locator('#installed-body .model-row[data-model="demo"]')
+        assert model_row.locator('button:has-text("Status unavailable")').is_disabled()
+
+        page.get_by_role("tab", name="Setup & Deploy").click()
+        page.locator("#btn-status").click()
+        sync_api.expect(model_row.locator(".unload-installed-btn")).to_be_visible()
+        page.get_by_role("tab", name="Chat").click()
+        sync_api.expect(page.locator("#chat-session-state")).to_contain_text("Ready")
+        assert page.locator("#chat-input").is_enabled()
+        assert page.locator("#chat-input").input_value() == "Keep this draft"
+        assert page.locator("#chat-attachments .chat-attach-chip").count() == 1
+    finally:
+        page.close()
+
+
+@pytest.mark.parametrize("failure", ["http", "reported"])
+def test_chat_preserves_draft_while_inventory_is_unavailable(live_server, browser, failure):
+    page = browser.new_page()
+    profile = {"backend": "ollama", "model_id": "demo", "enabled": True, "supports_vision": True}
+    page.route("**/profiles", lambda route: route.fulfill(json={"profiles": {"demo": profile}, "default_profile": "demo"}))
+    page.route("**/registry/installed", lambda route: route.fulfill(json={"success": True, "installed": [{"name": "demo"}]}))
+    page.route("**/system/status", lambda route: route.fulfill(json={
+        "success": True, "served_models": ["demo"],
+        "ollama": {"reachable": True, "running": [{"name": "demo", "placement": "CPU"}]},
+    }))
+    try:
+        page.goto(f"{live_server}/ui", wait_until="domcontentloaded")
+        page.get_by_role("tab", name="Chat").click()
+        sync_api.expect(page.locator("#chat-session-state")).to_contain_text("Ready")
+        page.locator("#chat-input").fill("Keep this draft")
+        page.locator("#chat-images").set_input_files({
+            "name": "draft.png", "mimeType": "image/png", "buffer": b"\x89PNG\r\n\x1a\nexample",
+        })
+        sync_api.expect(page.locator("#chat-attachments .chat-attach-chip")).to_have_count(1)
+        page.evaluate("""async failure => {
+          const models = await import('/ui/js/models.js?v=20261028-ui34');
+          const originalFetch = window.fetch;
+          window.fetch = (url, options) => {
+            if (new URL(url, location.href).pathname === '/registry/installed') {
+              const body = failure === 'reported' ? {success: false, error: 'inventory offline'}
+                                                   : {detail: 'simulated inventory outage'};
+              return Promise.resolve(new Response(JSON.stringify(body), {
+                status: failure === 'http' ? 500 : 200, headers: {'Content-Type': 'application/json'},
+              }));
+            }
+            return originalFetch(url, options);
+          };
+          await models.refreshModels({profiles: false, runtime: false});
+          window.fetch = originalFetch;
+        }""", failure)
+        sync_api.expect(page.locator("#chat-session-state")).to_contain_text("Inventory unavailable")
+        sync_api.expect(page.locator("#chat-messages")).to_contain_text("Inventory unavailable")
+        assert page.locator("#chat-input").is_disabled()
+        assert page.locator("#chat-input").input_value() == "Keep this draft"
+        assert page.locator("#chat-attachments .chat-attach-chip").count() == 1
+        sync_api.expect(page.locator("#installed-body")).to_contain_text("Inventory unavailable")
+
+        page.get_by_role("tab", name="Setup & Deploy").click()
+        page.locator("#btn-installed").click()
+        page.get_by_role("tab", name="Chat").click()
+        sync_api.expect(page.locator("#chat-session-state")).to_contain_text("Ready")
+        assert page.locator("#chat-input").input_value() == "Keep this draft"
+        assert page.locator("#chat-attachments .chat-attach-chip").count() == 1
+    finally:
+        page.close()
+
+
 def test_chat_only_lists_installed_models_and_tracks_load_delete(live_server, browser):
     page = browser.new_page(viewport={"width": 1280, "height": 800})
     runtime = {
@@ -271,9 +531,8 @@ def test_chat_only_lists_installed_models_and_tracks_load_delete(live_server, br
     try:
         page.goto(f"{live_server}/ui", wait_until="domcontentloaded")
         page.get_by_role("tab", name="Chat").click()
-        page.wait_for_function("document.querySelector('#chat-model')?.options.length === 1")
         model_select = page.locator("#chat-model")
-        assert model_select.input_value() == "gemma3:4b"
+        sync_api.expect(model_select).to_have_value("gemma3:4b")
         assert "missing.gguf" not in model_select.inner_text()
         assert page.locator("#chat-input").is_disabled()
         assert page.locator("#btn-chat-session").inner_text() == "Load model"

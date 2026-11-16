@@ -84,3 +84,32 @@ def test_free_says_so_when_nothing_was_loaded(monkeypatch):
     monkeypatch.setattr(llamacpp_managed, "stop_all", lambda: None)
     body = client.post("/models/free", json={}).json()
     assert body["success"] is True and body["unloaded"] == 0 and body["message"] == "No models were loaded."
+
+
+def test_free_reports_managed_server_busy_after_unloading_ollama(monkeypatch):
+    from localdeploy.backends import llamacpp_managed
+
+    monkeypatch.setattr(models_mod._ollama, "list_running", lambda: ([], None))
+    monkeypatch.setattr(models_mod._ollama, "unload_all", lambda: (1, None))
+    monkeypatch.setattr(llamacpp_managed, "stop_all", lambda: False)
+    body = client.post("/models/free", json={}).json()
+    assert body["success"] is False
+    assert body["status"] == "busy"
+    assert body["unloaded"] == 1
+    assert "not stopped" in body["error"]
+
+
+def test_free_reports_managed_server_stop_failure(monkeypatch):
+    from localdeploy.backends import llamacpp_managed
+    from localdeploy.utils import BackendCallError
+
+    def fail_stop():
+        raise BackendCallError("managed server did not stop")
+
+    monkeypatch.setattr(models_mod._ollama, "list_running", lambda: ([], None))
+    monkeypatch.setattr(models_mod._ollama, "unload_all", lambda: (0, None))
+    monkeypatch.setattr(llamacpp_managed, "stop_all", fail_stop)
+    body = client.post("/models/free", json={}).json()
+    assert body["success"] is False
+    assert body["status"] == "error"
+    assert "did not stop" in body["error"]

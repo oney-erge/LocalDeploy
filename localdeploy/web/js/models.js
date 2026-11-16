@@ -4,8 +4,8 @@ import { $, $$, busy, currentTheme, downloadFile, esc, fmtBytes, fmtDuration, fm
 
 const state = {
   profiles: [], profileData: {}, profileModels: {}, defaultProfile: null,
-  installedByName: {}, installedLoaded: false, installedSort: "default",
-  installedSelection: new Set(), installedList: [], servedModels: [], runningDetails: [],
+  installedByName: {}, installedLoaded: false, installedUnavailable: false, installedSort: "default",
+  installedSelection: new Set(), installedList: [], servedModels: [], runningDetails: [], runtimeStatus: "unknown",
   runningPlacements: {}, fitRefreshTimer: null, fitCache: {},
   catalog: { rows: [], providers: [], loaded: false, page: 0 },
   remoteCatalogLoaded: false, unifiedSearchSeq: 0, unifiedSearchTimer: null,
@@ -16,6 +16,9 @@ const state = {
 };
 const listeners = new Set();
 let initialized = false;
+let profileRefreshGeneration = 0;
+let runtimeRefreshGeneration = 0;
+let installedRefreshGeneration = 0;
 
 function clone(value) { return value == null ? value : structuredClone(value); }
 function readonly(value) {
@@ -64,8 +67,8 @@ function normalizedInventory() {
 export function getModelSnapshot() {
   return readonly({
     profiles: normalizedProfiles(), defaultProfile: state.defaultProfile,
-    installed: normalizedInventory(), installedLoaded: state.installedLoaded,
-    running: clone(state.runningDetails), servedModels: [...state.servedModels],
+    installed: normalizedInventory(), installedLoaded: state.installedLoaded, installedUnavailable: state.installedUnavailable,
+    running: clone(state.runningDetails), servedModels: [...state.servedModels], runtimeStatus: state.runtimeStatus,
     placements: clone(state.runningPlacements),
   });
 }
@@ -121,8 +124,10 @@ async function refreshLiveModelState(includeInstalled = false, options = {}) {
 // ---------------------------------------------------------------------------
 
 async function loadProfiles(options = {}) {
+  const generation = ++profileRefreshGeneration;
   try {
-    const data = await getJSON("/profiles");
+    const data = await getJSON("/profiles", { isCurrent: () => generation === profileRefreshGeneration });
+    if (generation !== profileRefreshGeneration) return;
     const profiles = data.profiles || {};
     state.profileData = profiles;
     state.profiles = Object.keys(profiles);
@@ -134,6 +139,7 @@ async function loadProfiles(options = {}) {
     setConn(true);
     if (options.notify !== false) notifyModelChanges("profiles");
   } catch (err) {
+    if (generation !== profileRefreshGeneration) return;
     setConn(false);
     setProfileActionsEnabled(false);
     toast(`Could not load profiles: ${err.message}`, "error");
@@ -255,11 +261,17 @@ function runningDetailForInstalled(modelName) {
 // ---------------------------------------------------------------------------
 
 async function refreshStatus(options = {}) {
+  const generation = ++runtimeRefreshGeneration;
   const btn = $("#btn-status");
   busy(btn, true);
   $("#status-body").innerHTML = skeletonHtml(2);
   try {
-    const s = await getJSON("/system/status");
+    const s = await getJSON("/system/status", { isCurrent: () => generation === runtimeRefreshGeneration });
+    if (generation !== runtimeRefreshGeneration) return;
+    if (s.success === false || s.ollama?.reachable === false) {
+      throw new Error(s.ollama?.error || s.error || "Ollama is unreachable");
+    }
+    state.runtimeStatus = "available";
     state.servedModels = s.served_models || [];
     state.runningDetails = s.ollama?.running || [];
     // Record each running model's *measured* placement so a benchmark can tag
@@ -321,14 +333,19 @@ async function refreshStatus(options = {}) {
     }
     body.innerHTML = `<div style="margin-bottom:.5rem">${reachable}</div>${served}`;
   } catch (err) {
+    if (generation !== runtimeRefreshGeneration) return;
     state.servedModels = [];
     state.runningDetails = [];
     state.runningPlacements = {};
+    state.runtimeStatus = "unavailable";
+    $("#status-body").innerHTML = `<div role="status">Status unavailable: ${esc(String(err.message || "Unknown error").slice(0, 300))}. Use Refresh status to retry.</div>`;
     toast(`Status failed: ${err.message}`, "error");
   } finally {
-    busy(btn, false);
-    if (state.installedLoaded) renderInstalledList();
-    if (options.notify !== false) notifyModelChanges("runtime");
+    if (generation === runtimeRefreshGeneration) {
+      busy(btn, false);
+      if (state.installedLoaded) renderInstalledList();
+      if (options.notify !== false) notifyModelChanges("runtime");
+    }
   }
 }
 
@@ -561,12 +578,14 @@ function fitMeterHtml(res) {
 }
 
 async function refreshInstalled(options = {}) {
+  const generation = ++installedRefreshGeneration;
   const btn = $("#btn-installed");
   busy(btn, true);
   const body = $("#installed-body");
   body.innerHTML = skeletonHtml(3);
   try {
-    const data = await getJSON("/registry/installed");
+    const data = await getJSON("/registry/installed", { isCurrent: () => generation === installedRefreshGeneration });
+    if (generation !== installedRefreshGeneration) return;
     // A real refresh invalidates cached fit results (models may have been
     // pulled/deleted, or free VRAM shifted); re-sorting alone keeps the cache.
     state.fitCache = {};
@@ -574,12 +593,14 @@ async function refreshInstalled(options = {}) {
       state.installedByName = {};
       state.installedList = [];
       state.installedLoaded = false; // unknown, so nothing gets hidden as "not pulled"
+      state.installedUnavailable = true;
       renderProfileSelectOptions();
-      body.innerHTML = `<div class="muted">${esc(data.error || "Ollama unreachable.")}</div>`;
+      body.innerHTML = `<div role="status" class="muted">Inventory unavailable: ${esc(String(data.error || "Ollama unreachable").slice(0, 300))}. Use Refresh to retry.</div>`;
       return;
     }
     state.installedByName = {};
     state.installedLoaded = true;
+    state.installedUnavailable = false;
     state.installedList = data.installed;
     // Drop selections for models that no longer exist.
     const names = new Set(data.installed.map((m) => m.name));
@@ -596,14 +617,20 @@ async function refreshInstalled(options = {}) {
     renderProfileSelectOptions();
     renderInstalledList();
   } catch (err) {
+    if (generation !== installedRefreshGeneration) return;
     state.installedByName = {};
     state.installedList = [];
     state.installedLoaded = false;
+    state.installedUnavailable = true;
+    renderProfileSelectOptions();
+    body.innerHTML = `<div role="status" class="muted">Inventory unavailable: ${esc(String(err.message || "Unknown error").slice(0, 300))}. Use Refresh to retry.</div>`;
     toast(`Installed list failed: ${err.message}`, "error");
   } finally {
-    busy(btn, false);
-    if (state.remoteCatalog.rows.length) renderRemoteCatalog();
-    if (options.notify !== false) notifyModelChanges("installed");
+    if (generation === installedRefreshGeneration) {
+      busy(btn, false);
+      if (state.remoteCatalog.rows.length) renderRemoteCatalog();
+      if (options.notify !== false) notifyModelChanges("installed");
+    }
   }
 }
 
@@ -662,9 +689,11 @@ function renderInstalledList() {
         const unloading = [...state.unloadingModels].some((name) => ollamaModelNamesMatch(name, m.name));
         const loaded = running ? `<span class="badge on">● loaded</span>` : "";
         const loadedHint = running ? `<span class="meta">${esc(formatExpires(running.expires_at))}</span>` : "";
-        const primaryAction = running || unloading
-          ? `<button class="btn danger unload-installed-btn${unloading ? " loading" : ""}" title="Unload this model from RAM and VRAM"${unloading ? " disabled" : ""}>${unloading ? "Unloading…" : "■ Unload"}</button>`
-          : `<button class="btn primary start-installed-btn" title="Load this model into memory and start serving it">▶ Deploy</button>`;
+        const primaryAction = state.runtimeStatus !== "available"
+          ? `<button class="btn" disabled title="Refresh status before changing this model">${state.runtimeStatus === "unknown" ? "Checking status…" : "Status unavailable"}</button>`
+          : running || unloading
+            ? `<button class="btn danger unload-installed-btn${unloading ? " loading" : ""}" title="Unload this model from RAM and VRAM"${unloading ? " disabled" : ""}>${unloading ? "Unloading…" : "■ Unload"}</button>`
+            : `<button class="btn primary start-installed-btn" title="Load this model into memory and start serving it">▶ Deploy</button>`;
         const checked = state.installedSelection.has(m.name) ? " checked" : "";
         return `<div class="mrow model-row" data-model="${esc(m.name)}">
           <input type="checkbox" class="model-select" title="Select for bulk delete"${checked} />

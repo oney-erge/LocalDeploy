@@ -6,8 +6,8 @@ Step 6:  GET  /system/status  -> served model(s), Ollama health, VRAM
          POST /models/stop      -> unload a model
          POST /models/switch    -> pivot from one model to another
 
-Ollama is driven fully. llama.cpp lifecycle is process-managed by the existing
-scripts, so serve/stop return clear guidance instead of spawning processes.
+Ollama and managed llama.cpp profiles use their respective runtime owners.
+Externally managed llama.cpp profiles retain their own lifecycle.
 
 Also covers importing GGUF files that aren't in any registry:
          POST /system/check-local-gguf -> validate a local .gguf path
@@ -264,6 +264,7 @@ def system_status() -> Dict[str, Any]:
         "success": True,
         "ollama": {"reachable": run_error is None, "running": running, "error": run_error},
         "served_models": [m.get("name") for m in running],
+        "managed_llamacpp": llamacpp_managed.status(),
         "hardware": {
             "gpu_available": hardware["gpu_available"],
             "gpus": hardware["gpus"],
@@ -694,21 +695,32 @@ def _llamacpp_status_message() -> Dict[str, Any]:
 @router.post("/models/serve")
 def models_serve(req: ServeRequest) -> Dict[str, Any]:
     try:
-        backend, model_id, _ = _resolve_target(req.profile, req.model, "ollama")
+        backend, model_id, profile = _resolve_target(req.profile, req.model, "ollama")
     except ValueError as exc:
         return {"success": False, "error": str(exc)}
     if backend == "ollama":
         return _serve_ollama(model_id, req.keep_alive, _resolve_num_gpu(req.device, req.num_gpu))
+    if req.profile and llamacpp_managed.is_managed(profile):
+        try:
+            url = llamacpp_managed.ensure(req.profile, profile)
+        except BackendCallError as exc:
+            return {"success": False, "backend": "llamacpp", "error": str(exc)}
+        return {"success": True, "backend": "llamacpp", "status": "ready", "profile": req.profile, "server": url}
     return _llamacpp_status_message()
 
 
 @router.post("/models/stop")
 def models_stop(req: StopRequest) -> Dict[str, Any]:
     try:
-        backend, model_id, _ = _resolve_target(req.profile, req.model, "ollama")
+        backend, model_id, profile = _resolve_target(req.profile, req.model, "ollama")
     except ValueError as exc:
         return {"success": False, "error": str(exc)}
     if backend != "ollama":
+        if req.profile and llamacpp_managed.is_managed(profile):
+            try:
+                return {"backend": "llamacpp", **llamacpp_managed.stop_profile(req.profile)}
+            except BackendCallError as exc:
+                return {"success": False, "backend": "llamacpp", "error": str(exc)}
         return {
             "success": False,
             "backend": "llamacpp",
@@ -797,7 +809,12 @@ def models_free() -> Dict[str, Any]:
     llama.cpp server was stopped, memory was freed and that is a success.
     """
     running_before, _ = _ollama.list_running()
-    llamacpp = llamacpp_managed.stop_all()
+    llamacpp_error = None
+    try:
+        llamacpp = llamacpp_managed.stop_all()
+    except BackendCallError as exc:
+        llamacpp = False
+        llamacpp_error = str(exc)
     try:
         count, err = _ollama.unload_all()
     except BackendCallError as exc:
@@ -810,6 +827,13 @@ def models_free() -> Dict[str, Any]:
         name = m.get("name")
         if name:
             monitor.note_stop(name)
+    if llamacpp is False:
+        return {
+            "success": False,
+            "status": "busy" if llamacpp_error is None else "error",
+            "unloaded": count,
+            "error": llamacpp_error or "The managed llama.cpp server has active or uncertain work and was not stopped.",
+        }
     unloaded = count + (1 if llamacpp else 0)
     return {
         "success": True,
@@ -822,10 +846,16 @@ def models_free() -> Dict[str, Any]:
 @router.post("/models/switch")
 def models_switch(req: SwitchRequest) -> Dict[str, Any]:
     try:
-        backend, to_model, _ = _resolve_target(req.to_profile, req.to_model, "ollama")
+        backend, to_model, profile = _resolve_target(req.to_profile, req.to_model, "ollama")
     except ValueError as exc:
         return {"success": False, "error": str(exc)}
     if backend != "ollama":
+        if req.to_profile and llamacpp_managed.is_managed(profile):
+            try:
+                url = llamacpp_managed.ensure(req.to_profile, profile)
+            except BackendCallError as exc:
+                return {"success": False, "backend": "llamacpp", "error": str(exc)}
+            return {"success": True, "backend": "llamacpp", "status": "ready", "profile": req.to_profile, "server": url}
         return _llamacpp_status_message()
 
     unloaded = None
