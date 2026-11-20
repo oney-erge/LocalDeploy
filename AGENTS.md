@@ -2,7 +2,8 @@
 
 ## Project
 
-LocalDeploy is a local-first Python web UI and OpenAI-compatible API for
+LocalDeploy is a local-first Python web UI and set of local APIs (OpenAI-compatible,
+native, decision, and the control endpoints the UI uses) for
 discovering, selecting, running, monitoring, and benchmarking models on the
 user's own hardware. It integrates with loopback runtimes such as Ollama,
 llama.cpp, LM Studio, vLLM, and Docker Model Runner; LocalDeploy does not provide

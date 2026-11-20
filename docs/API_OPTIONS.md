@@ -1,6 +1,15 @@
 # API Options For External Clients
 
-External clients can call either the native LocalDeploy API or the OpenAI-compatible API.
+External clients can reach a deployed model through several APIs:
+
+| API | Endpoints | Use it for |
+|---|---|---|
+| Native | `/chat`, `/vision`, `/estimate`, `/benchmark` | Requests by profile, with per-request context limits, safe mode, image input, and a safety estimate |
+| OpenAI-compatible | `/v1/chat/completions`, `/v1/responses`, `/v1/embeddings`, `/v1/models` | Any app or SDK that speaks the OpenAI API |
+| Decision | `/v1/systemone` | Small classifiers that return a probability for every option; see [Decision models](#decision-models) |
+| Control | `/system/*`, `/models/*`, `/registry/*`, `/benchmark/*`, `/profiles/*` | What the web UI uses: hardware and fit checks, recommendations, pull, serve, switch, benchmark, manifests, and client setups. The interactive reference is at `/docs` |
+
+The sections below show the request shape of the native, OpenAI-compatible, and decision APIs.
 
 ## Native `/chat`
 
