@@ -8,6 +8,8 @@ from pathlib import Path
 
 import pytest
 
+from tests.node_flags import node_module_flags
+
 WEB_DIR = Path(__file__).resolve().parent.parent / "localdeploy" / "web"
 JS_DIR = WEB_DIR / "js"
 MODULE_NAMES = {
@@ -46,7 +48,7 @@ def test_feature_modules_have_no_import_time_browser_side_effects() -> None:
         result = subprocess.run(
             [
                 "node",
-                "--experimental-default-type=module",
+                *node_module_flags(),
                 "-e",
                 f"import({module_url!r}).catch(error => {{ console.error(error); process.exit(1); }})",
             ],
