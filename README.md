@@ -18,10 +18,12 @@
 </p>
 
 LocalDeploy helps you answer a practical question before you download a model:
-will it fit and run well on this machine? It detects hardware, estimates memory
-use, manages local models, records benchmarks, and serves the deployed model
-through an OpenAI-compatible API. It runs locally, has no telemetry, and does
-not provide cloud inference.
+will it fit and run well on this machine? It finds the local models that fit
+your hardware, tests them on your own questions, and connects the winner to your
+apps. It detects hardware, estimates memory use, manages models across Ollama,
+llama.cpp, LM Studio, and vLLM, records benchmarks, and serves the deployed
+model through several APIs. It runs locally, has no telemetry, and does not
+provide cloud inference.
 
 ## Quick start
 
@@ -59,22 +61,54 @@ Windows setup script. Desktop builds are experimental and unsigned; see
 
 - Find models from Ollama, Hugging Face, ModelScope GGUF repositories, local
   GGUF files, or direct URLs.
-- Estimate model fit before download, including likely CPU offload.
-- Pull, deploy, switch, unload, and remove local models.
-- Chat with text, images, and documents, then compare installed models using
-  measured latency, throughput, memory, and accuracy results.
+- Estimate model fit before download, including likely CPU offload, and compare
+  quantizations with the quant advisor.
+- Pull, deploy, switch, unload, and remove local models. A llama.cpp chat model
+  can be started, switched, and stopped by LocalDeploy itself.
+- Chat with text, images, and documents, then compare installed models on the
+  built-in or your own question sets using measured latency, throughput, memory,
+  and accuracy results.
 - Monitor CPU, RAM, VRAM, model placement, and request timing while a model runs.
-- Connect compatible tools through `/v1/chat/completions`, `/v1/responses`,
-  `/v1/embeddings`, and `/v1/models`.
-- Run small **decision models** (vLLM Semantic Router d3, LiquidAI d1, Laya) at `/v1/systemone`: ask
-  typed questions about a piece of text and get each answer with a probability, in under a second on a
-  CPU for the d3-lite model, so an app can classify or route locally and call a language model only
-  when the answer is not confident. Optional;
-  see [Decision models](docs/API_OPTIONS.md#decision-models) and the [comparison](docs/MODELS.md#decision-models).
+- Export a deployment as a manifest, check it on another machine, and recreate
+  it there.
 
-If you already know which Ollama model you want and only need terminal chat,
-Ollama may be enough. LocalDeploy is for selecting and evaluating models on a
-particular machine.
+## Ways to use it
+
+Once a model is running, your tools can reach it in several ways:
+
+| Way in | What it is for |
+|---|---|
+| Web UI at `/ui` | Check hardware, find, pull, and deploy models, chat, benchmark and compare, monitor |
+| OpenAI-compatible API: `/v1/chat/completions`, `/v1/responses`, `/v1/embeddings`, `/v1/models` | Any app or SDK that speaks the OpenAI API, with streaming, JSON-schema output, and tool calls returned to your app |
+| Native API: `/chat`, `/vision`, `/estimate`, `/benchmark` | Requests by profile, with per-request context limits, safe mode, image input, and a safety estimate before you send |
+| Control API: about 50 endpoints | Script what the UI does: hardware and fit checks, recommendations, search, pull, serve, switch, free the GPU, benchmark, compare, export. The interactive reference is at `/docs` |
+| Decision API: `/v1/systemone` | Small classifiers that answer typed questions about a piece of text with a probability for every option |
+| Client setups | Ready configuration for Open WebUI, AnythingLLM, Continue, Cline, curl, Python, JavaScript, and Docker Compose, generated from a running model |
+| Deployment manifests | Record the model digest, quantization, runtime settings, hardware, and measurements, then recreate the deployment elsewhere |
+| Terminal | `scripts/chat.ps1` for chat and `compare_models.py` for side-by-side runs; see [CLI](docs/CLI.md) |
+
+[API options](docs/API_OPTIONS.md) has request examples for the native,
+OpenAI-compatible, and decision APIs. The control API is described at `/docs`.
+
+The **decision API** is optional. It runs small models (vLLM Semantic Router d3,
+LiquidAI d1, Laya) that return a probability for every option in one pass, so an
+app can classify or route locally and call a language model only when the answer
+is not confident. On a laptop CPU, the 0.85B d3-lite model routed agent messages
+to 15 routes as accurately as an 8B language model on one set (93% against 92%
+of 98 messages), slightly less on another (84% against 88% of 43), in 0.5 s
+instead of 15 s. The [raw runs and method](benchmarks/decision-routing/README.md)
+are in the repository, and [Decision models](docs/API_OPTIONS.md#decision-models)
+shows how to enable one.
+
+## Where it fits
+
+- If you already know which model you want and only need terminal chat, Ollama
+  may be enough.
+- If you use a front end such as Open WebUI, Continue, or Cline, LocalDeploy is
+  the layer underneath: it helps choose and run the model and generates those
+  tools' connection settings.
+- If you are choosing between models for a particular machine, it runs the
+  candidates on your own questions and records what you measured.
 
 ## What to expect
 
@@ -99,7 +133,7 @@ have their own network settings; see [Security](SECURITY.md).
 |---|---|
 | [Installation](docs/INSTALL.md) | Launcher commands, Docker, and setup alternatives |
 | [UI guide](docs/UI.md) | Choosing, deploying, chatting with, and benchmarking models |
-| [API options](docs/API_OPTIONS.md) | OpenAI-compatible API and local integrations |
+| [API options](docs/API_OPTIONS.md) | Native, OpenAI-compatible, and decision APIs, with request examples |
 | [CLI](docs/CLI.md) | Commands and automation |
 | [Models](docs/MODELS.md) | Runtimes, model discovery, and fit estimates |
 | [Screenshots](docs/SCREENSHOTS.md) | The complete UI tour |
