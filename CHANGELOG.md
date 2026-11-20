@@ -2,8 +2,13 @@
 
 All notable changes to this project should be documented here.
 
-## Unreleased
+## 0.7.0 - 2026-11-20
 
+- The README, the API guide and the package description now describe every way to use LocalDeploy, not only the OpenAI-compatible
+  API: the web UI, the OpenAI-compatible API, the native API (`/chat`, `/vision`, `/estimate`, `/benchmark`), the control API,
+  the decision API, generated client setups for Open WebUI, AnythingLLM, Continue, Cline, curl, Python, JavaScript and Docker
+  Compose, and deployment manifests. The README also carries the measured decision-model result.
+- Updated runtime dependencies: FastAPI 0.162.5, pydantic 2.14.3, python-multipart 0.0.33 and huggingface-hub 2.4.0.
 - The setup screen now opens on the answer to "which model should I run?". Once the hardware is read, the three recommended
   models appear without a click, and the hardware detail and fit budget fold under one line that names the GPU, CPU, RAM and
   budget. A slow automatic request can no longer replace recommendations the user asked for: only the latest request writes
