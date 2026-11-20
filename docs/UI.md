@@ -29,6 +29,8 @@ llama.cpp is optional. Normal startup skips an incomplete llama.cpp configuratio
 
 Start here on a new installation. Check the detected hardware, get a model, and deploy it. Pulling a model through the UI creates a profile for it. Profiles are stored in `config.json`.
 
+The screen opens with the answer to "which model should I run?". Once the hardware is read, three recommended models for a general assistant appear on their own, with no click. Change the use case, priority, or context size and press **Recommend models for me** for a different set. The System card is one line naming your GPU, CPU, RAM, and fit budget; open **Hardware details and fit budget** for the full inventory, live VRAM, and the budget controls.
+
 | Area | Purpose | Main endpoint |
 |---|---|---|
 | Hardware | GPU inventory, compatible VRAM pools, CPU, RAM, and fit budget | `GET /system/hardware` |

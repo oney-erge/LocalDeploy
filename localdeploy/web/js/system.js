@@ -1,6 +1,6 @@
 "use strict";
 
-import { $, $$, busy, esc, fmtDuration, fmtMb, getJSON, postJSON, skeletonHtml, toast } from "./shared.js?v=20261028-ui34";
+import { $, $$, busy, esc, fmtDuration, fmtMb, getJSON, postJSON, skeletonHtml, toast } from "./shared.js?v=20261120-ui35";
 
 const state = {
   hardware: null,
@@ -72,6 +72,28 @@ function updateHwChip(hw) {
   chip.classList.remove("hidden");
 }
 
+// One line under the System title, so the details can stay folded: GPU and memory, CPU name, RAM, fit budget.
+function updateSystemSummary() {
+  const el = $("#system-summary");
+  const hw = state.hardware;
+  if (!el || !hw) return;
+  const parts = [];
+  const g = hw.gpus?.[0];
+  if (hw.gpu_available && g) {
+    const count = hw.gpu_summary?.gpu_count || hw.gpus.length;
+    const pool = hw.gpu_summary?.best_pool_total_mb ?? g.vram_total_mb;
+    const memory = g.unified_memory ? "unified memory" : `${fmtMb(pool)} VRAM`;
+    parts.push(`${g.name}${count > 1 ? ` (+${count - 1} more)` : ""}, ${memory}`);
+  } else {
+    parts.push("No GPU detected");
+  }
+  if (hw.system?.cpu_model) parts.push(hw.system.cpu_model);
+  if (hw.system?.ram_total_mb) parts.push(`${fmtMb(hw.system.ram_total_mb)} RAM`);
+  const budget = targetVram();
+  if (budget) parts.push(`fit budget ${fmtMb(budget)}`);
+  el.textContent = parts.join(" · ");
+}
+
 function syncHardwareState(hw) {
   const g = hw?.gpus?.[0];
   state.vramTotalMb = hw?.gpu_summary?.best_pool_total_mb ?? g?.vram_total_mb ?? null;
@@ -122,6 +144,7 @@ function updateVramBudgetUI() {
   } else {
     help.textContent = "Set a GPU budget to filter models by fit.";
   }
+  updateSystemSummary();
   updateProgressRail();
 }
 
@@ -511,6 +534,7 @@ async function checkHardware() {
     toast(`Hardware check failed: ${err.message}`, "error");
   } finally {
     busy(btn, false);
+    updateSystemSummary();
     updateProgressRail();
     // Publish hardware as soon as this probe completes, without waiting for
     // the independent runtime and update checks in refreshSystem().

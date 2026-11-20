@@ -182,7 +182,7 @@ def test_chat_model_picker_distinguishes_checking_from_one_installed_model(live_
     try:
         page.goto(f"{live_server}/ui", wait_until="domcontentloaded")
         states = page.evaluate("""async () => {
-          const chat = await import('/ui/js/chat.js?v=20261028-ui34');
+          const chat = await import('/ui/js/chat.js?v=20261120-ui35');
           const select = document.querySelector('#chat-model');
           chat.updateModelContext({installedLoaded: false});
           const checking = {count: select.options.length, value: select.value, disabled: select.disabled};
@@ -209,7 +209,7 @@ def test_late_model_refresh_does_not_overwrite_a_newer_result(live_server, brows
         page.goto(f"{live_server}/ui", wait_until="domcontentloaded")
         sync_api.expect(page.locator("#chat-model")).to_have_value("demo")
         result = page.evaluate("""async ({kind, failure}) => {
-          const models = await import('/ui/js/models.js?v=20261028-ui34');
+          const models = await import('/ui/js/models.js?v=20261120-ui35');
           const paths = {runtime: '/system/status', installed: '/registry/installed', profiles: '/profiles'};
           const originalFetch = window.fetch;
           const originalPrompt = window.prompt;
@@ -298,7 +298,7 @@ def test_loading_model_ignores_older_status_and_preserves_chat_draft(live_server
         sync_api.expect(page.locator("#chat-model")).to_have_value("demo")
         sync_api.expect(page.locator("#chat-session-state")).to_contain_text("On disk")
         page.evaluate("""async () => {
-          const models = await import('/ui/js/models.js?v=20261028-ui34');
+          const models = await import('/ui/js/models.js?v=20261120-ui35');
           const originalFetch = window.fetch;
           let held = false;
           window.fetch = (url, options) => {
@@ -347,7 +347,7 @@ def test_chat_preserves_draft_while_runtime_status_is_unavailable(live_server, b
         })
         sync_api.expect(page.locator("#chat-attachments .chat-attach-chip")).to_have_count(1)
         page.evaluate("""async failure => {
-          const models = await import('/ui/js/models.js?v=20261028-ui34');
+          const models = await import('/ui/js/models.js?v=20261120-ui35');
           const originalFetch = window.fetch;
           window.fetch = (url, options) => {
             if (new URL(url, location.href).pathname === '/system/status') {
@@ -405,7 +405,7 @@ def test_chat_preserves_draft_while_inventory_is_unavailable(live_server, browse
         })
         sync_api.expect(page.locator("#chat-attachments .chat-attach-chip")).to_have_count(1)
         page.evaluate("""async failure => {
-          const models = await import('/ui/js/models.js?v=20261028-ui34');
+          const models = await import('/ui/js/models.js?v=20261120-ui35');
           const originalFetch = window.fetch;
           window.fetch = (url, options) => {
             if (new URL(url, location.href).pathname === '/registry/installed') {
@@ -771,37 +771,59 @@ def _recommend_candidate(bucket, model_id, why):
     }
 
 
+def _recommend_payload(recommended_id="qwen2.5-coder:7b"):
+    return {
+        "success": True,
+        "budget_source": "vram",
+        "raw_budget_gb": 10.0,
+        "budget_gb": 8.0,
+        "margin_relaxed": False,
+        "use_case": "coding",
+        "priority": "balanced",
+        "expected_context": 8192,
+        "recommended": _recommend_candidate("recommended", recommended_id, "Best balance for what you asked for."),
+        "faster": _recommend_candidate("faster", "llama3.2:3b", "Smaller and faster, some quality trade-off."),
+        "higher_quality": _recommend_candidate("higher_quality", "qwen3:14b", "Strongest quality that still fits."),
+        "hardware": {"gpu_available": True, "gpus": []},
+        "message": None,
+    }
+
+
+_LAPTOP_HARDWARE = {
+    "success": True,
+    "gpu_available": True,
+    "gpus": [{"name": "NVIDIA GeForce RTX 3080 Laptop GPU", "vendor": "NVIDIA", "backend": "CUDA", "vram_total_mb": 8192, "vram_free_mb": 7168}],
+    "gpu_summary": {"best_pool_total_mb": 8192, "best_pool_free_mb": 7168, "gpu_count": 1},
+    "system": {"cpu_model": "AMD Ryzen 9 5900HS with Radeon Graphics", "physical_cores": 8, "logical_cores": 16, "ram_total_mb": 40345, "ram_available_mb": 20000},
+}
+
+
+def _wait_for_calls(page, calls, count, timeout=10.0):
+    # Route callbacks only run while the test is inside a Playwright call, so wait with the page.
+    deadline = time.time() + timeout
+    while len(calls) < count and time.time() < deadline:
+        page.wait_for_timeout(25)
+    assert len(calls) >= count, f"expected {count} recommend requests, saw {len(calls)}"
+
+
 def test_guided_recommend_renders_three_labeled_buckets(live_server, browser):
     page = browser.new_page()
     calls = []
 
     def recommend_route(route):
         calls.append(route.request.post_data_json)
-        route.fulfill(
-            json={
-                "success": True,
-                "budget_source": "vram",
-                "raw_budget_gb": 10.0,
-                "budget_gb": 8.0,
-                "margin_relaxed": False,
-                "use_case": "coding",
-                "priority": "balanced",
-                "expected_context": 8192,
-                "recommended": _recommend_candidate("recommended", "qwen2.5-coder:7b", "Best balance for what you asked for."),
-                "faster": _recommend_candidate("faster", "llama3.2:3b", "Smaller and faster, some quality trade-off."),
-                "higher_quality": _recommend_candidate("higher_quality", "qwen3:14b", "Strongest quality that still fits."),
-                "hardware": {"gpu_available": True, "gpus": []},
-                "message": None,
-            },
-        )
+        route.fulfill(json=_recommend_payload())
 
     page.route("**/registry/recommend", recommend_route)
     page.route("**/registry/installed", lambda route: route.fulfill(json={"success": True, "installed": [], "error": None}))
     try:
         page.goto(f"{live_server}/ui", wait_until="domcontentloaded")
+        # The first request is the automatic one; wait for it before asking for something else.
+        _wait_for_calls(page, calls, 1)
+        page.wait_for_selector(".recommendation-card")
         page.locator("#rec-use-case").select_option("coding")
         page.locator("#btn-recommend-models").click()
-        page.wait_for_selector(".recommendation-card")
+        _wait_for_calls(page, calls, 2)
         cards = page.locator(".recommendation-card")
         sync_api.expect(cards).to_have_count(3)
         sync_api.expect(page.locator(".bucket-label")).to_have_count(3)
@@ -809,6 +831,72 @@ def test_guided_recommend_renders_three_labeled_buckets(live_server, browser):
         # "Why this model?" is a <details> disclosure - its reasons are present in the DOM.
         sync_api.expect(cards.first.locator(".reason-item").first).to_contain_text("Fits your VRAM budget")
         assert calls[-1]["use_case"] == "coding"
+    finally:
+        page.close()
+
+
+def test_first_screen_shows_recommendations_and_a_one_line_system_summary(live_server, browser):
+    page = browser.new_page(viewport={"width": 1440, "height": 900})
+    calls = []
+
+    def recommend_route(route):
+        calls.append(route.request.post_data_json)
+        route.fulfill(json=_recommend_payload())
+
+    page.route("**/system/hardware", lambda route: route.fulfill(json=_LAPTOP_HARDWARE))
+    page.route("**/registry/recommend", recommend_route)
+    page.route("**/registry/installed", lambda route: route.fulfill(json={"success": True, "installed": [], "error": None}))
+    try:
+        page.goto(f"{live_server}/ui", wait_until="domcontentloaded")
+        # No click: the three picks appear on their own, for the general-assistant default.
+        sync_api.expect(page.locator(".recommendation-card")).to_have_count(3)
+        assert len(calls) == 1 and calls[0]["use_case"] is None
+        assert calls[0]["free_vram_mb"] == 8192
+        # The hardware detail is folded; one line says what the machine is, with the CPU by name.
+        sync_api.expect(page.locator("#system-summary")).to_have_text(
+            "NVIDIA GeForce RTX 3080 Laptop GPU, 8.0 GB VRAM · AMD Ryzen 9 5900HS with Radeon Graphics · 39.4 GB RAM · fit budget 8.0 GB"
+        )
+        assert page.locator("#system-details").evaluate("el => el.open") is False
+        # The picks are on the first screen without scrolling.
+        top = page.locator(".recommendation-card").first.bounding_box()["y"]
+        assert top < 900, f"first recommendation starts at y={top}, below the fold"
+        # The folded controls still work once opened.
+        page.locator("#system-details > summary").click()
+        sync_api.expect(page.locator("#vram-budget-gb")).to_be_visible()
+        sync_api.expect(page.locator("#hardware-body")).to_contain_text("AMD Ryzen 9 5900HS with Radeon Graphics")
+    finally:
+        page.close()
+
+
+def test_a_slow_automatic_recommendation_never_replaces_the_users_request(live_server, browser):
+    page = browser.new_page()
+    calls = []
+    held = []
+
+    def recommend_route(route):
+        body = route.request.post_data_json
+        calls.append(body)
+        if len(calls) == 1:
+            held.append(route)  # the automatic request: hold it until after the user's own
+            return
+        route.fulfill(json=_recommend_payload("user-choice:7b"))
+
+    page.route("**/system/hardware", lambda route: route.fulfill(json=_LAPTOP_HARDWARE))
+    page.route("**/registry/recommend", recommend_route)
+    page.route("**/registry/installed", lambda route: route.fulfill(json={"success": True, "installed": [], "error": None}))
+    try:
+        page.goto(f"{live_server}/ui", wait_until="domcontentloaded")
+        _wait_for_calls(page, calls, 1)
+        page.locator("#rec-use-case").select_option("coding")
+        page.locator("#btn-recommend-models").click()
+        _wait_for_calls(page, calls, 2)
+        sync_api.expect(page.locator(".recommendation-card").first).to_contain_text("user-choice:7b")
+        # Now the slow automatic answer arrives. It must not touch the panel.
+        held[0].fulfill(json=_recommend_payload("stale-auto:7b"))
+        page.evaluate("() => new Promise((resolve) => setTimeout(resolve, 400))")
+        sync_api.expect(page.locator(".recommendation-card").first).to_contain_text("user-choice:7b")
+        assert "stale-auto" not in page.locator("#starter-pack-body").inner_text()
+        assert len(calls) == 2, "the automatic request must run only once"
     finally:
         page.close()
 

@@ -4,6 +4,11 @@ All notable changes to this project should be documented here.
 
 ## Unreleased
 
+- The setup screen now opens on the answer to "which model should I run?". Once the hardware is read, the three recommended
+  models appear without a click, and the hardware detail and fit budget fold under one line that names the GPU, CPU, RAM and
+  budget. A slow automatic request can no longer replace recommendations the user asked for: only the latest request writes
+  the panel. The CPU is now shown by its name ("AMD Ryzen 9 5900HS with Radeon Graphics") on Windows, read from the registry,
+  and on macOS, instead of the raw identifier "AMD64 Family 25 Model 80 Stepping 0, AuthenticAMD". Web asset version `ui35`.
 - `POST /models/free` now stops the llama.cpp server LocalDeploy manages as well as unloading Ollama's models. It only unloaded Ollama's, so
   freeing the GPU for something else (a game) left the main language model in video memory when it was served by llama.cpp. The reply names
   the profile that was stopped (`llamacpp`) and counts it in `unloaded`; when Ollama cannot be reached but a llama.cpp server was stopped,

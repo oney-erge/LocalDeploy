@@ -1,6 +1,6 @@
 "use strict";
 
-import { $, $$, downloadFile, esc, fmtBytes, formatExpires, postJSON, postMaybeStream, toast } from "./shared.js?v=20261028-ui34";
+import { $, $$, downloadFile, esc, fmtBytes, formatExpires, postJSON, postMaybeStream, toast } from "./shared.js?v=20261120-ui35";
 
 const state = {
   profiles: [], profileData: {}, profileModels: {}, defaultProfile: null,

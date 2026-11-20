@@ -1,6 +1,6 @@
 "use strict";
 
-import { $, $$, busy, currentTheme, downloadFile, esc, fmtBytes, fmtDuration, fmtMb, formatExpires, getJSON, postJSON, postMaybeStream, simpleModal, skeletonHtml, startElapsed, toast, vramBarHtml } from "./shared.js?v=20261028-ui34";
+import { $, $$, busy, currentTheme, downloadFile, esc, fmtBytes, fmtDuration, fmtMb, formatExpires, getJSON, postJSON, postMaybeStream, simpleModal, skeletonHtml, startElapsed, toast, vramBarHtml } from "./shared.js?v=20261120-ui35";
 
 const state = {
   profiles: [], profileData: {}, profileModels: {}, defaultProfile: null,
@@ -12,10 +12,13 @@ const state = {
   remoteCatalog: { sourceRows: [], rows: [], fits: {}, query: "", sort: "popularity-desc" },
   unloadingModels: new Set(), pullRetry: null, manifestToRecreate: null,
   bakeoff: { controller: null },
-  systemContext: { vramTotalMb: null, vramFreeMb: null, vramBudgetMb: null, ollamaStatus: {} },
+  systemContext: { vramTotalMb: null, vramFreeMb: null, vramBudgetMb: null, hardwareChecked: false, ollamaStatus: {} },
 };
 const listeners = new Set();
 let initialized = false;
+// Each recommendation request takes the next number; only the latest one may write the
+// panel, so a slow automatic request can never replace what the user just asked for.
+let recommendRequestSeq = 0;
 let profileRefreshGeneration = 0;
 let runtimeRefreshGeneration = 0;
 let installedRefreshGeneration = 0;
@@ -90,12 +93,22 @@ export function updateSystemContext(snapshot = {}) {
     vramTotalMb: snapshot.vramTotalMb ?? null,
     vramFreeMb: snapshot.vramFreeMb ?? null,
     vramBudgetMb: snapshot.vramBudgetMb ?? null,
+    hardwareChecked: snapshot.hardware != null,
     ollamaStatus: { ...(snapshot.ollamaStatus || {}) },
   };
   if (state.systemContext.ollamaStatus.installed === false) {
     showOllamaHelp(null, null, "Ollama isn't installed, so pulling and serving models won't work yet. Install it, then come back here.");
   }
   if (previousBudget !== targetVram()) scheduleFitRefresh();
+  showFirstRecommendations();
+}
+
+// The first screen answers "which model should I run?" without a click: once the hardware is
+// known, ask for the three picks one time. After that only the user's own requests change them.
+function showFirstRecommendations() {
+  if (recommendRequestSeq > 0 || !state.systemContext.hardwareChecked) return;
+  if (!$("#starter-pack-body") || !$("#btn-recommend-models")) return;
+  void recommendModels(null, { auto: true });
 }
 
 function scheduleFitRefresh() {
@@ -1507,8 +1520,9 @@ async function runBakeoff(source) {
 }
 */
 
-async function recommendModels(source) {
-  const btn = source?.currentTarget || source || $("#btn-recommend-models");
+async function recommendModels(source, { auto = false } = {}) {
+  const seq = ++recommendRequestSeq;
+  const btn = auto ? null : (source?.currentTarget || source || $("#btn-recommend-models"));
   busy(btn, true);
   const body = $("#starter-pack-body");
   body.innerHTML = `<div class="muted"><span class="spin-inline"></span> Finding models that fit your workload and hardware…</div>`;
@@ -1521,6 +1535,7 @@ async function recommendModels(source) {
       free_vram_mb: targetVram(),
       margin_gb: 2.0,
     });
+    if (seq !== recommendRequestSeq) return; // a newer request owns the panel now
     if (!data.success || (!data.recommended && !data.faster && !data.higher_quality)) {
       body.innerHTML = `<div class="muted">${esc(data.message || "Could not determine a fit budget.")}</div>`;
       return;
@@ -1532,8 +1547,14 @@ async function recommendModels(source) {
     const cards = [data.recommended, data.faster, data.higher_quality].filter(Boolean);
     body.innerHTML = header + note + `<div class="fit-grid">` + cards.map(renderRecommendCard).join("") + `</div>`;
   } catch (err) {
-    body.innerHTML = `<div class="muted">Recommendation lookup failed.</div>`;
-    toast(`Recommendation failed: ${err.message}`, "error");
+    if (seq !== recommendRequestSeq) return;
+    if (auto) {
+      // The user asked for nothing, so no error toast; the panel says how to try again.
+      body.innerHTML = `<div class="muted">Could not load recommendations yet. Press "Recommend models for me" to try again.</div>`;
+    } else {
+      body.innerHTML = `<div class="muted">Recommendation lookup failed.</div>`;
+      toast(`Recommendation failed: ${err.message}`, "error");
+    }
   } finally {
     busy(btn, false);
   }

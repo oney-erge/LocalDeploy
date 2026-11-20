@@ -4,8 +4,8 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>LocalDeploy</title>
-    <link rel="icon" type="image/png" href="favicon.png?v=20261028-ui34" />
-    <link rel="stylesheet" href="styles.css?v=20261028-ui34" />
+    <link rel="icon" type="image/png" href="favicon.png?v=20261120-ui35" />
+    <link rel="stylesheet" href="styles.css?v=20261120-ui35" />
     <script>
       // Applied synchronously, before CSS renders, so a saved preference never flashes the other theme.
       try {
@@ -19,7 +19,7 @@
   <body>
     <header class="topbar">
       <button class="brand brand-button" id="brand-home" type="button" title="Go to setup">
-        <img class="brand-icon" src="logo.svg?v=20261028-ui34" alt="" />
+        <img class="brand-icon" src="logo.svg?v=20261120-ui35" alt="" />
         <span>LocalDeploy</span>
       </button>
       <nav class="tabs" role="tablist">
@@ -58,13 +58,15 @@
           <div class="card-head">
             <div>
               <h2>System</h2>
-              <p class="muted small">Your GPU, memory, and the budget used for model fit checks.</p>
+              <p class="muted small" id="system-summary">Your GPU, memory, and the budget used for model fit checks.</p>
             </div>
             <div class="row gap" style="align-items: center">
               <span id="ollama-status-pill" class="chip hidden" title="Ollama runtime status"></span>
               <button class="btn" id="btn-hardware" data-icon="◎">Check hardware</button>
             </div>
           </div>
+          <details class="system-details" id="system-details">
+          <summary class="advanced-summary"><span class="muted small">Hardware details and fit budget</span></summary>
           <div id="hardware-body" class="muted">Hardware has not been checked yet.</div>
           <div class="live-vram-panel" style="margin-top: 0.75rem">
             <div class="budget-head">
@@ -98,6 +100,7 @@
             </div>
             <div id="vram-budget-help" class="muted small" style="margin-top: 0.5rem">Fit badges on models and search results all use this budget.</div>
           </div>
+          </details>
         </div>
 
         <!-- ============ 2. GET A MODEL (recommended / HF search / manual) ============ -->
@@ -886,6 +889,6 @@
 
     <div id="ui-tooltip" class="ui-tooltip" role="tooltip" aria-hidden="true"></div>
     <div id="toasts" class="toasts" aria-live="polite"></div>
-    <script type="module" src="js/app.js?v=20261028-ui34"></script>
+    <script type="module" src="js/app.js?v=20261120-ui35"></script>
   </body>
 </html>
