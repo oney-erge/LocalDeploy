@@ -64,6 +64,25 @@ def _run(command: List[str], timeout: int = 10) -> Optional[str]:
     return completed.stdout if completed.returncode == 0 else None
 
 
+def _windows_cpu_name() -> Optional[str]:
+    # platform.processor() on Windows is the raw "AMD64 Family 25 Model 80 Stepping 0,
+    # AuthenticAMD" identifier; the registry holds the marketing name.
+    try:
+        import winreg
+
+        with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r"HARDWARE\DESCRIPTION\System\CentralProcessor\0") as key:
+            value, _kind = winreg.QueryValueEx(key, "ProcessorNameString")
+    except (ImportError, OSError):
+        return None
+    return " ".join(str(value).split()) or None
+
+
+def _macos_cpu_name() -> Optional[str]:
+    exe = shutil.which("sysctl")
+    output = _run([exe, "-n", "machdep.cpu.brand_string"], timeout=5) if exe else None
+    return (output or "").strip() or None
+
+
 def _cpu_model() -> Optional[str]:
     try:
         with open("/proc/cpuinfo", "r", encoding="utf-8") as fh:
@@ -72,6 +91,10 @@ def _cpu_model() -> Optional[str]:
                     return line.split(":", 1)[1].strip() or None
     except OSError:
         pass
+    system = platform.system()
+    named = _windows_cpu_name() if system == "Windows" else _macos_cpu_name() if system == "Darwin" else None
+    if named:
+        return named
     proc = (platform.processor() or "").strip()
     return proc or (platform.machine() or "").strip() or None
 

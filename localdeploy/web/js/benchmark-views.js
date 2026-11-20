@@ -1,6 +1,6 @@
 "use strict";
 
-import { esc } from "./shared.js?v=20261028-ui34";
+import { esc } from "./shared.js?v=20261120-ui35";
 
 function runLabel(run) { return [run.profile || run.modelId || "run", run.actualDevice || run.requestedDevice].filter(Boolean).join(" · "); }
 function categorySummary(tests = []) {

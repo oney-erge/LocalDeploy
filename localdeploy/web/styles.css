@@ -1770,6 +1770,8 @@ ul.err-list li { color: var(--bad); }
 details[open] > .advanced-summary::before { transform: rotate(90deg); }
 .advanced-block { padding: 0.9rem 0; border-top: 1px solid var(--hairline); }
 .advanced-block:first-of-type { border-top: none; }
+.system-details { margin-top: 0.1rem; }
+.system-details[open] > .advanced-summary { margin-bottom: 0.5rem; }
 
 /* ---- Tuning editor modal ---- */
 .modal-overlay {
