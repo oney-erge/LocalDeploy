@@ -1,9 +1,9 @@
-fastapi==0.162.5
+fastapi==0.165.0
 uvicorn==0.54.0
 requests==2.34.2
 python-dotenv==1.2.4
-pydantic==2.14.3
-python-multipart==0.0.33
+pydantic==2.14.4
+python-multipart==0.0.34
 huggingface_hub==2.4.0
 psutil==7.2.2
 pyyaml==6.0.3
